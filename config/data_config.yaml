@@ -1,0 +1,49 @@
+# config/data_config.yaml
+# Defines data paths and schema expectations.
+
+paths:
+  raw_data: "data/raw/banking_finance_01.csv"
+  interim_data: "data/interim/portfolio_preprocessed.csv"
+  processed_data: "data/processed/ifrs9_features_final.csv"
+
+target_variable: "stage_2_migration"
+id_column: "loan_id"
+date_column: "assessment_date"
+
+schema:
+  categorical_features:
+    - "loan_type"
+    - "origination_channel"
+    - "bank_region"
+    - "is_fixed_rate"
+    - "has_other_credit_with_bank"
+    - "payment_reduction_requested"
+    - "forbearance_history"
+    - "sector_stress_flag"
+    - "interest_rate_environment"
+    - "is_restructured_loan"
+    - "early_repayment_flag"
+    - "current_account_debit_flag"
+  
+  numerical_features:
+    - "loan_amount_gbp"
+    - "outstanding_balance_gbp"
+    - "original_loan_term_months"
+    - "remaining_term_months"
+    - "interest_rate_pct"
+    - "loan_to_value_pct"
+    - "vintage_year"
+    - "internal_credit_score"
+    - "credit_score_change_last_quarter"
+    - "bureau_inquiries_last_6m"
+    - "days_past_due_current"
+    - "missed_payments_last_12m"
+    - "utilisation_rate_pct"
+    - "property_value_change_pct_last_qtr"
+    - "pd_12m_at_origination_pct"
+    - "pd_12m_current_pct"
+    - "pd_relative_change_pct"
+    - "ltv_change_pct_since_origination"
+    - "months_since_last_restructure"
+    - "origination_ltv_pct"
+    - "months_on_book"

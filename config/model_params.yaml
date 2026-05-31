@@ -1,0 +1,30 @@
+# config/model_params.yaml
+# Hyperparameters for the Machine Learning models.
+
+xgboost:
+  objective: "binary:logistic"
+  eval_metric: "auc"
+  max_depth: 6
+  learning_rate: 0.05
+  n_estimators: 300
+  subsample: 0.8
+  colsample_bytree: 0.8
+  scale_pos_weight: 3.5  # Balances the ~22% Stage 2 / 78% Stage 1 distribution
+  random_state: 42
+
+lightgbm:
+  objective: "binary"
+  metric: "auc"
+  num_leaves: 31
+  max_depth: 6
+  learning_rate: 0.05
+  n_estimators: 300
+  subsample: 0.8
+  colsample_bytree: 0.8
+  is_unbalance: true
+  random_state: 42
+
+cross_validation:
+  n_splits: 5
+  shuffle: true
+  random_state: 42

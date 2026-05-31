@@ -1,0 +1,29 @@
+# config/business_rules.yaml
+# Defines the core IFRS 9 staging thresholds and sentinel value mappings.
+
+sentinel_values:
+  # -1 indicates 'not applicable' for unsecured and non-revolving products
+  loan_to_value_pct: -1.0
+  origination_ltv_pct: -1.0
+  utilisation_rate_pct: -1.0
+  # -999 indicates 'not applicable' for non-mortgage products
+  property_value_change_pct_last_qtr: -999.0
+  ltv_change_pct_since_origination: -999.0
+
+product_categories:
+  unsecured:
+    - "Personal Loan"
+    - "Credit Card"
+  secured:
+    - "Residential Mortgage"
+    - "Buy-to-Let Mortgage"
+    - "Auto Finance"
+    - "SME Term Loan"
+  revolving:
+    - "Credit Card"
+    - "Corporate Revolving Credit Facility"
+
+ifrs9_thresholds:
+  stage_2_pd_relative_change_pct: 100.0  # > 100% relative change triggers Stage 2
+  stage_2_dpd_backstop: 30               # 30+ Days Past Due triggers Stage 2
+  high_risk_dpd_threshold: 14            # Internal early-warning flag

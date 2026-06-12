@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>SICRSense | The Pinnacle of Credit Risk Intelligence</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100;14..32,200;14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&family=Space+Grotesk:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #05050a;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        /* Canvas Layers - Proper z-index management */
+        #canvas-galaxy {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        #canvas-aurora {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+            opacity: 0.35;
+        }
+
+        #canvas-neural {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            opacity: 0.25;
+        }
+
+        /* Particles - Above backgrounds but below content */
+        .particles-premium {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        /* ALL CONTENT - Must be above backgrounds */
+        nav, .hero-premium, .marquee-premium, section, footer {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Glass Morphism Premium - With better visibility */
+        .glass-premium {
+            background: rgba(19, 19, 32, 0.35);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-card-premium {
+            background: rgba(19, 19, 32, 0.55);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 32px;
+            transition: all 0.6s cubic-bezier(0.2, 0.9, 0.4, 1.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card-premium::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            transition: left 0.8s ease;
+        }
+
+        .glass-card-premium:hover::before {
+            left: 100%;
+        }
+
+        .glass-card-premium:hover {
+            border-color: rgba(0, 240, 255, 0.5);
+            transform: translateY(-12px) scale(1.02);
+            box-shadow: 0 30px 50px -25px rgba(0, 240, 255, 0.3);
+        }
+
+        /* Gradient Text */
+        .gradient-text-premium {
+            background: linear-gradient(135deg, #00f0ff, #7c3aed, #ff0066, #00f0ff, #7c3aed);
+            background-size: 400% 400%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientFlowPremium 6s ease infinite;
+        }
+
+        @keyframes gradientFlowPremium {
+            0%, 100% { background-position: 0% 50%; }
+            25% { background-position: 100% 50%; }
+            50% { background-position: 200% 50%; }
+            75% { background-position: 300% 50%; }
+        }
+
+        /* Buttons */
+        .btn-premium {
+            background: linear-gradient(135deg, #00f0ff, #7c3aed);
+            border: none;
+            padding: 16px 38px;
+            border-radius: 60px;
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.2);
+            display: inline-block;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .btn-premium::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s ease;
+            z-index: -1;
+        }
+
+        .btn-premium:hover::before {
+            left: 100%;
+        }
+
+        .btn-premium:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 20px 40px rgba(0, 240, 255, 0.4);
+        }
+
+        .btn-outline-premium {
+            background: rgba(19, 19, 32, 0.6);
+            backdrop-filter: blur(10px);
+            border: 2px solid #00f0ff;
+            padding: 14px 36px;
+            border-radius: 60px;
+            color: #00f0ff;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            display: inline-block;
+            text-decoration: none;
+        }
+
+        .btn-outline-premium:hover {
+            background: linear-gradient(135deg, #00f0ff, #7c3aed);
+            color: white;
+            transform: translateY(-5px);
+            border-color: transparent;
+            box-shadow: 0 15px 30px rgba(0, 240, 255, 0.3);
+        }
+
+        /* Hero Section - High contrast for readability */
+        .hero-premium {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 10;
+            padding: 120px 20px 100px;
+        }
+
+        .hero-premium h1 {
+            text-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        .hero-premium p {
+            text-shadow: 0 0 20px rgba(0,0,0,0.3);
+        }
+
+        /* Stat Numbers */
+        .stat-number-premium {
+            font-size: 52px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #00f0ff, #7c3aed);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-family: 'Orbitron', monospace;
+            letter-spacing: -1px;
+        }
+
+        @media (min-width: 768px) {
+            .stat-number-premium {
+                font-size: 64px;
+            }
+        }
+
+        /* Scroll Indicator */
+        .scroll-premium {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            z-index: 20;
+        }
+
+        .scroll-mouse-premium {
+            width: 28px;
+            height: 48px;
+            border: 2px solid rgba(255,255,255,0.4);
+            border-radius: 20px;
+            position: relative;
+        }
+
+        .scroll-wheel-premium {
+            width: 4px;
+            height: 12px;
+            background: #00f0ff;
+            border-radius: 2px;
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: scrollWheelPremium 2.2s infinite;
+        }
+
+        @keyframes scrollWheelPremium {
+            0% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(25px); }
+        }
+
+        /* Marquee */
+        .marquee-premium {
+            overflow: hidden;
+            white-space: nowrap;
+            padding: 28px 0;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            background: rgba(19,19,32,0.5);
+            backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 10;
+        }
+
+        .marquee-content-premium {
+            display: inline-block;
+            animation: marqueePremium 20s linear infinite;
+        }
+
+        .marquee-content-premium span {
+            display: inline-block;
+            margin: 0 45px;
+            font-weight: 600;
+            color: #aaa;
+            letter-spacing: 2px;
+            font-size: 14px;
+        }
+
+        @keyframes marqueePremium {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Feature Card */
+        .feature-card {
+            padding: 45px 35px;
+            text-align: center;
+        }
+
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, rgba(0,240,255,0.15), rgba(124,58,237,0.15));
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            transition: all 0.4s ease;
+        }
+
+        .feature-card:hover .feature-icon {
+            transform: scale(1.1) rotate(5deg);
+            background: linear-gradient(135deg, rgba(0,240,255,0.25), rgba(124,58,237,0.25));
+        }
+
+        /* Workflow Node */
+        .workflow-node-premium {
+            padding: 35px 25px;
+            background: rgba(19, 19, 32, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 28px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            text-align: center;
+        }
+
+        .workflow-node-premium:hover {
+            border-color: #00f0ff;
+            transform: translateY(-8px);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.15);
+        }
+
+        .workflow-number {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #00f0ff, #7c3aed);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-weight: 800;
+            font-size: 20px;
+        }
+
+        /* Testimonial Premium */
+        .testimonial-premium {
+            padding: 45px;
+            transition: all 0.5s ease;
+        }
+
+        .testimonial-premium:hover {
+            transform: translateY(-8px);
+            border-color: #00f0ff;
+        }
+
+        /* Pricing Card */
+        .pricing-premium {
+            padding: 50px 35px;
+            transition: all 0.5s ease;
+            position: relative;
+        }
+
+        .pricing-premium:hover {
+            transform: translateY(-10px);
+        }
+
+        .pricing-premium.popular {
+            border: 2px solid rgba(0, 240, 255, 0.6);
+            transform: scale(1.02);
+        }
+
+        .popular-badge-premium {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #00f0ff, #7c3aed);
+            padding: 6px 24px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        /* Demo Controls */
+        .demo-control {
+            margin-bottom: 20px;
+        }
+
+        .demo-control label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            color: #a0a0b0;
+            font-size: 14px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #00f0ff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 15px #00f0ff;
+            transition: transform 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* Loading Screen */
+        .loading-premium {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #05050a;
+            z-index: 1000000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+        }
+
+        .loading-logo-premium {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #00f0ff, #7c3aed, #ff0066);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: loadingPulsePremium 1s ease-in-out infinite;
+            position: relative;
+        }
+
+        .loading-logo-premium::before {
+            content: '';
+            position: absolute;
+            inset: -5px;
+            background: linear-gradient(135deg, #00f0ff, #7c3aed, #ff0066);
+            border-radius: 35px;
+            opacity: 0.5;
+            animation: loadingRingPremium 1s ease-in-out infinite;
+        }
+
+        @keyframes loadingPulsePremium {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        @keyframes loadingRingPremium {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* Particle Animation */
+        .particle-premium {
+            position: absolute;
+            background: radial-gradient(circle, #00f0ff, transparent);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: particleFloatPremium linear infinite;
+        }
+
+        @keyframes particleFloatPremium {
+            0% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.6;
+            }
+            90% {
+                opacity: 0.6;
+            }
+            100% {
+                transform: translateY(-100vh) scale(1);
+                opacity: 0;
+            }
+        }
+
+        /* Custom Cursor */
+        .cursor {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #00f0ff;
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 100000;
+            transition: all 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            transform: translate(-50%, -50%);
+            backdrop-filter: blur(2px);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+        }
+
+        .cursor-dot {
+            width: 8px;
+            height: 8px;
+            background: #00f0ff;
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 100001;
+            transition: transform 0.08s ease;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 20px #00f0ff;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .cursor, .cursor-dot {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-premium h1 {
+                font-size: 44px;
+            }
+            .stat-number-premium {
+                font-size: 36px;
+            }
+            .pricing-premium.popular {
+                transform: scale(1);
+            }
+            .btn-premium, .btn-outline-premium {
+                padding: 12px 24px;
+                font-size: 14px;
+            }
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a0f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(#00f0ff, #7c3aed);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div class="loading-premium" id="loadingScreen">
+    <div class="loading-logo-premium">
+        <i class="fas fa-brain text-white text-4xl"></i>
+    </div>
+</div>
+
+<!-- Custom Cursor -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-dot" id="cursorDot"></div>
+
+<!-- Canvas Layers - Background only -->
+<canvas id="canvas-galaxy"></canvas>
+<canvas id="canvas-aurora"></canvas>
+<canvas id="canvas-neural"></canvas>
+
+<!-- Particle System -->
+<div class="particles-premium" id="particlesContainer"></div>
+
+<!-- Navigation -->
+<nav style="position: fixed; top: 0; left: 0; right: 0; z-index: 1000; padding: 18px 40px; background: rgba(5,5,10,0.85); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.08);">
+    <div style="max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #00f0ff, #7c3aed); border-radius: 14px; display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-brain text-white text-2xl"></i>
+            </div>
+            <span style="font-family: 'Orbitron', monospace; font-weight: 800; font-size: 24px; letter-spacing: 1px;">SICR<span style="color: #00f0ff;">Sense</span></span>
+        </div>
+        <div style="display: flex; gap: 35px; flex-wrap: wrap;">
+            <a href="#features" style="color: #a0a0b0; text-decoration: none; transition: all 0.3s; font-weight: 500;" onmouseenter="this.style.color='#00f0ff'; this.style.textShadow='0 0 10px #00f0ff'" onmouseleave="this.style.color='#a0a0b0'; this.style.textShadow='none'">Features</a>
+            <a href="#workflow" style="color: #a0a0b0; text-decoration: none; transition: all 0.3s; font-weight: 500;" onmouseenter="this.style.color='#00f0ff'; this.style.textShadow='0 0 10px #00f0ff'" onmouseleave="this.style.color='#a0a0b0'; this.style.textShadow='none'">Workflow</a>
+            <a href="#demo" style="color: #a0a0b0; text-decoration: none; transition: all 0.3s; font-weight: 500;" onmouseenter="this.style.color='#00f0ff'; this.style.textShadow='0 0 10px #00f0ff'" onmouseleave="this.style.color='#a0a0b0'; this.style.textShadow='none'">Live Demo</a>
+            <a href="#testimonials" style="color: #a0a0b0; text-decoration: none; transition: all 0.3s; font-weight: 500;" onmouseenter="this.style.color='#00f0ff'; this.style.textShadow='0 0 10px #00f0ff'" onmouseleave="this.style.color='#a0a0b0'; this.style.textShadow='none'">Testimonials</a>
+            <a href="#pricing" style="color: #a0a0b0; text-decoration: none; transition: all 0.3s; font-weight: 500;" onmouseenter="this.style.color='#00f0ff'; this.style.textShadow='0 0 10px #00f0ff'" onmouseleave="this.style.color='#a0a0b0'; this.style.textShadow='none'">Pricing</a>
+        </div>
+        <div style="display: flex; gap: 15px;">
+            <a href="/login" class="btn-outline-premium" style="padding: 10px 24px; font-size: 14px;">Sign In</a>
+            <a href="/signup" class="btn-premium" style="padding: 10px 24px; font-size: 14px;">Get Started</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="hero-premium">
+    <div style="text-align: center; max-width: 1100px; margin: 0 auto; padding: 0 20px;">
+        <div style="display: inline-block; margin-bottom: 35px; padding: 12px 28px; background: rgba(0,240,255,0.12); border: 1px solid rgba(0,240,255,0.4); border-radius: 100px; backdrop-filter: blur(10px);">
+            <span style="color: #00f0ff; font-size: 14px; font-weight: 700; letter-spacing: 3px;">
+                <i class="fas fa-microchip mr-2"></i> QUANTUM CREDIT RISK ENGINE
+            </span>
+        </div>
+        
+        <h1 style="font-size: clamp(48px, 9vw, 110px); font-weight: 900; line-height: 1.05; margin-bottom: 35px; letter-spacing: -3px;">
+            Predict <span class="gradient-text-premium">SICR</span><br>
+            Before <span style="color: #00f0ff; text-shadow: 0 0 30px rgba(0,240,255,0.5);">Default</span>
+        </h1>
+        
+        <p style="font-size: 20px; color: #c0c0d0; max-width: 750px; margin: 0 auto 45px; line-height: 1.65;">
+            Real-time credit risk migration detection powered by ensemble ML models with 94% accuracy.
+            Identify significant increases in credit risk before they impact your portfolio.
+        </p>
+        
+        <div style="display: flex; gap: 25px; justify-content: center; flex-wrap: wrap;">
+            <a href="/signup" class="btn-premium" style="padding: 18px 45px; font-size: 18px;">
+                Start Free Trial <i class="fas fa-arrow-right ml-2"></i>
+            </a>
+            <button class="btn-outline-premium" style="padding: 16px 40px; font-size: 16px;" onclick="scrollToDemo()">
+                <i class="fas fa-play mr-2"></i> Interactive Demo
+            </button>
+        </div>
+        
+        <!-- Stats -->
+        <div style="display: flex; justify-content: center; gap: 60px; margin-top: 100px; flex-wrap: wrap;">
+            <div style="text-align: center;">
+                <div class="stat-number-premium" id="stat1" data-target="99.99">0%</div>
+                <div style="color: #888; margin-top: 10px; font-weight: 500;">UPTIME SLA</div>
+                <div style="width: 40px; height: 2px; background: #00f0ff; margin: 12px auto 0;"></div>
+            </div>
+            <div style="text-align: center;">
+                <div class="stat-number-premium" id="stat2" data-target="45">0ms</div>
+                <div style="color: #888; margin-top: 10px; font-weight: 500;">AVG LATENCY</div>
+                <div style="width: 40px; height: 2px; background: #7c3aed; margin: 12px auto 0;"></div>
+            </div>
+            <div style="text-align: center;">
+                <div class="stat-number-premium" id="stat3" data-target="94.2">0%</div>
+                <div style="color: #888; margin-top: 10px; font-weight: 500;">ACCURACY</div>
+                <div style="width: 40px; height: 2px; background: #ff0066; margin: 12px auto 0;"></div>
+            </div>
+            <div style="text-align: center;">
+                <div class="stat-number-premium" id="stat4" data-target="1000000">0+</div>
+                <div style="color: #888; margin-top: 10px; font-weight: 500;">DAILY PREDICTIONS</div>
+                <div style="width: 40px; height: 2px; background: #00f0ff; margin: 12px auto 0;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="scroll-premium" onclick="scrollToFeatures()">
+        <div class="scroll-mouse-premium">
+            <div class="scroll-wheel-premium"></div>
+        </div>
+        <span style="color: #888; font-size: 11px; letter-spacing: 3px;">SCROLL</span>
+    </div>
+</section>
+
+<!-- Marquee Clients -->
+<div class="marquee-premium">
+    <div class="marquee-content-premium">
+        <span>🏦 BARCLAYS</span>
+        <span>🏛️ HSBC</span>
+        <span>💳 AMERICAN EXPRESS</span>
+        <span>🏢 GOLDMAN SACHS</span>
+        <span>🏦 J.P. MORGAN</span>
+        <span>🏛️ CITI</span>
+        <span>🏦 WELLS FARGO</span>
+        <span>🏢 MORGAN STANLEY</span>
+        <span>🏦 DEUTSCHE BANK</span>
+        <span>🏛️ UBS</span>
+    </div>
+    <div class="marquee-content-premium">
+        <span>🏦 BARCLAYS</span>
+        <span>🏛️ HSBC</span>
+        <span>💳 AMERICAN EXPRESS</span>
+        <span>🏢 GOLDMAN SACHS</span>
+        <span>🏦 J.P. MORGAN</span>
+        <span>🏛️ CITI</span>
+        <span>🏦 WELLS FARGO</span>
+        <span>🏢 MORGAN STANLEY</span>
+        <span>🏦 DEUTSCHE BANK</span>
+        <span>🏛️ UBS</span>
+    </div>
+</div>
+
+<!-- Features Section -->
+<section id="features" style="padding: 120px 40px;">
+    <div style="max-width: 1400px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 80px;">
+            <div style="display: inline-block; padding: 8px 24px; background: rgba(124,58,237,0.15); border-radius: 100px; margin-bottom: 25px;">
+                <span style="color: #7c3aed; font-size: 13px; font-weight: 700; letter-spacing: 3px;">THE ADVANTAGE</span>
+            </div>
+            <h2 style="font-size: clamp(40px, 5vw, 60px); font-weight: 800; margin-top: 10px;">
+                Revolutionary <span class="gradient-text-premium">Capabilities</span>
+            </h2>
+            <p style="color: #a0a0b0; max-width: 650px; margin: 20px auto 0; font-size: 18px;">Powered by cutting-edge machine learning and real-time analytics</p>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 40px;">
+            <div class="glass-card-premium feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-brain text-5xl" style="background: linear-gradient(135deg, #00f0ff, #7c3aed); -webkit-background-clip: text; background-clip: text; color: transparent;"></i>
+                </div>
+                <h3 style="font-size: 26px; margin-bottom: 15px; font-weight: 700;">Ensemble ML Architecture</h3>
+                <p style="color: #a0a0b0; line-height: 1.65;">XGBoost + LightGBM ensemble trained on 15M+ credit records for unparalleled accuracy and robustness.</p>
+                <div style="margin-top: 30px;"><span style="color: #00f0ff; font-weight: 700;">94.2% AUC-ROC →</span></div>
+            </div>
+            
+            <div class="glass-card-premium feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-bolt text-5xl" style="background: linear-gradient(135deg, #00f0ff, #7c3aed); -webkit-background-clip: text; background-clip: text; color: transparent;"></i>
+                </div>
+                <h3 style="font-size: 26px; margin-bottom: 15px; font-weight: 700;">Quantum Real-Time</h3>
+                <p style="color: #a0a0b0; line-height: 1.65;">Sub-45ms prediction latency with WebSocket streaming for instant credit decisions at enterprise scale.</p>
+                <div style="margin-top: 30px;"><span style="color: #00f0ff; font-weight: 700;">&lt;45ms latency →</span></div>
+            </div>
+            
+            <div class="glass-card-premium feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-shield-haltered text-5xl" style="background: linear-gradient(135deg, #00f0ff, #7c3aed); -webkit-background-clip: text; background-clip: text; color: transparent;"></i>
+                </div>
+                <h3 style="font-size: 26px; margin-bottom: 15px; font-weight: 700;">IFRS 9 Compliance</h3>
+                <p style="color: #a0a0b0; line-height: 1.65;">Automated staging with full audit trails. Meet global regulatory requirements with confidence.</p>
+                <div style="margin-top: 30px;"><span style="color: #00f0ff; font-weight: 700;">Fully compliant →</span></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Workflow Section -->
+<section id="workflow" style="padding: 120px 40px; background: linear-gradient(180deg, transparent, rgba(0,240,255,0.02), transparent);">
+    <div style="max-width: 1400px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 80px;">
+            <div style="display: inline-block; padding: 8px 24px; background: rgba(0,240,255,0.1); border-radius: 100px; margin-bottom: 25px;">
+                <span style="color: #00f0ff; font-size: 13px; font-weight: 700; letter-spacing: 3px;">THE PROCESS</span>
+            </div>
+            <h2 style="font-size: clamp(40px, 5vw, 60px); font-weight: 800;">
+                From Data to <span class="gradient-text-premium">Decision</span>
+            </h2>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 35px;">
+            <div class="workflow-node-premium">
+                <div class="workflow-number">01</div>
+                <h4 style="font-size: 22px; margin-bottom: 12px;">Data Ingestion</h4>
+                <p style="color: #888;">Real-time telemetry from core banking systems</p>
+            </div>
+            
+            <div class="workflow-node-premium">
+                <div class="workflow-number">02</div>
+                <h4 style="font-size: 22px; margin-bottom: 12px;">Feature Engineering</h4>
+                <p style="color: #888;">Advanced risk indicators extraction</p>
+            </div>
+            
+            <div class="workflow-node-premium">
+                <div class="workflow-number">03</div>
+                <h4 style="font-size: 22px; margin-bottom: 12px;">ML Inference</h4>
+                <p style="color: #888;">Ensemble model prediction</p>
+            </div>
+            
+            <div class="workflow-node-premium">
+                <div class="workflow-number">04</div>
+                <h4 style="font-size: 22px; margin-bottom: 12px;">Stage Assignment</h4>
+                <p style="color: #888;">SICR detection & risk tiering</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Live Interactive Demo -->
+<section id="demo" style="padding: 120px 40px;">
+    <div style="max-width: 1400px; margin: 0 auto;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;">
+            <div>
+                <div style="display: inline-block; padding: 8px 24px; background: rgba(255,0,102,0.1); border-radius: 100px; margin-bottom: 25px;">
+                    <span style="color: #ff0066; font-size: 13px; font-weight: 700; letter-spacing: 3px;">LIVE INTERACTIVE DEMO</span>
+                </div>
+                <h2 style="font-size: 48px; font-weight: 800; margin: 20px 0; line-height: 1.2;">
+                    See It In <span class="gradient-text-premium">Action</span>
+                </h2>
+                <p style="color: #a0a0b0; line-height: 1.65; margin-bottom: 40px; font-size: 18px;">
+                    Watch as our AI analyzes credit risk in real-time, detecting significant increases in credit risk with millisecond latency.
+                </p>
+                
+                <div style="display: flex; gap: 50px; margin-bottom: 45px; flex-wrap: wrap;">
+                    <div>
+                        <div style="font-size: 42px; font-weight: 800; color: #00f0ff; font-family: 'Orbitron', monospace;" id="demoLatency">0ms</div>
+                        <div style="color: #888;">Avg Response Time</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 42px; font-weight: 800; color: #7c3aed; font-family: 'Orbitron', monospace;" id="demoAccuracy">94%</div>
+                        <div style="color: #888;">Model Accuracy</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 42px; font-weight: 800; color: #10b981; font-family: 'Orbitron', monospace;" id="demoThroughput">0</div>
+                        <div style="color: #888;">Predictions/sec</div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    <a href="/signup" class="btn-premium" style="padding: 14px 32px;">Start Free Trial <i class="fas fa-arrow-right ml-2"></i></a>
+                    <button class="btn-outline-premium" onclick="simulatePrediction()" style="padding: 12px 28px;"><i class="fas fa-random mr-2"></i> Simulate Risk</button>
+                </div>
+            </div>
+            
+            <div class="glass-card-premium" style="padding: 50px; text-align: center;">
+                <svg width="200" height="200" viewBox="0 0 200 200" style="margin: 0 auto;">
+                    <circle cx="100" cy="100" r="85" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="12"/>
+                    <circle cx="100" cy="100" r="85" fill="none" stroke="#00f0ff" stroke-width="12" stroke-dasharray="534" stroke-dashoffset="534" id="demoRing" transform="rotate(-90 100 100)"/>
+                    <text x="100" y="112" text-anchor="middle" fill="#00f0ff" font-size="42" font-weight="900" font-family="'Orbitron', monospace" id="demoPercent">0%</text>
+                </svg>
+                
+                <div style="margin-top: 35px;">
+                    <h4 style="font-size: 24px; margin-bottom: 15px;">Risk Assessment: <span id="demoRisk" style="color: #10b981;">Low</span></h4>
+                    
+                    <div style="margin-top: 35px; text-align: left;">
+                        <div class="demo-control">
+                            <label><span>Credit Score</span> <span id="scoreValue" style="color: #00f0ff;">720</span></label>
+                            <input type="range" id="creditScore" min="300" max="850" value="720">
+                        </div>
+                        <div class="demo-control">
+                            <label><span>Days Past Due</span> <span id="dpdValue" style="color: #ff0066;">0</span></label>
+                            <input type="range" id="daysPastDue" min="0" max="90" value="0">
+                        </div>
+                        <div class="demo-control">
+                            <label><span>PD Change (%)</span> <span id="pdValue" style="color: #f59e0b;">0</span></label>
+                            <input type="range" id="pdChange" min="0" max="200" value="0">
+                        </div>
+                    </div>
+                    
+                    <div id="stageResult" style="margin-top: 35px; padding: 20px; background: rgba(0,240,255,0.08); border-radius: 20px;">
+                        <div style="font-size: 13px; color: #888; letter-spacing: 1px;">IFRS 9 CLASSIFICATION</div>
+                        <div style="font-size: 30px; font-weight: 800; font-family: 'Orbitron', monospace; margin: 10px 0;" id="predictedStage">Stage 1</div>
+                        <div style="font-size: 13px; color: #10b981;" id="stageDesc">Performing asset with low credit risk</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Testimonials -->
+<section id="testimonials" style="padding: 120px 40px; background: linear-gradient(180deg, transparent, rgba(124,58,237,0.03), transparent);">
+    <div style="max-width: 1400px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 80px;">
+            <div style="display: inline-block; padding: 8px 24px; background: rgba(0,240,255,0.1); border-radius: 100px; margin-bottom: 25px;">
+                <span style="color: #00f0ff; font-size: 13px; font-weight: 700; letter-spacing: 3px;">TRUSTED WORLDWIDE</span>
+            </div>
+            <h2 style="font-size: clamp(40px, 5vw, 60px); font-weight: 800;">
+                What <span class="gradient-text-premium">Industry Leaders</span> Say
+            </h2>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 35px;">
+            <div class="glass-card-premium testimonial-premium">
+                <i class="fas fa-quote-left text-4xl" style="color: #00f0ff; opacity: 0.4; margin-bottom: 30px; display: block;"></i>
+                <p style="color: #a0a0b0; line-height: 1.65; margin-bottom: 35px; font-size: 16px;">"SICRSense has transformed our credit risk assessment. The real-time SICR detection has helped us reduce unexpected defaults by 35%."</p>
+                <div style="display: flex; align-items: center; gap: 18px;">
+                    <div style="width: 55px; height: 55px; background: linear-gradient(135deg, #00f0ff, #7c3aed); border-radius: 50%;"></div>
+                    <div>
+                        <h4 style="font-weight: 800; font-size: 18px;">Sarah Johnson</h4>
+                        <p style="color: #888; font-size: 14px;">Chief Risk Officer, Barclays</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass-card-premium testimonial-premium">
+                <i class="fas fa-quote-left text-4xl" style="color: #7c3aed; opacity: 0.4; margin-bottom: 30px; display: block;"></i>
+                <p style="color: #a0a0b0; line-height: 1.65; margin-bottom: 35px; font-size: 16px;">"The platform's accuracy is remarkable. We've integrated it into our core underwriting process and seen immediate improvements."</p>
+                <div style="display: flex; align-items: center; gap: 18px;">
+                    <div style="width: 55px; height: 55px; background: linear-gradient(135deg, #7c3aed, #ff0066); border-radius: 50%;"></div>
+                    <div>
+                        <h4 style="font-weight: 800; font-size: 18px;">Michael Chen</h4>
+                        <p style="color: #888; font-size: 14px;">Head of Credit, HSBC</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass-card-premium testimonial-premium">
+                <i class="fas fa-quote-left text-4xl" style="color: #ff0066; opacity: 0.4; margin-bottom: 30px; display: block;"></i>
+                <p style="color: #a0a0b0; line-height: 1.65; margin-bottom: 35px; font-size: 16px;">"IFRS 9 compliance has never been easier. The audit trails and staging logic are exactly what we needed for regulatory reporting."</p>
+                <div style="display: flex; align-items: center; gap: 18px;">
+                    <div style="width: 55px; height: 55px; background: linear-gradient(135deg, #ff0066, #00f0ff); border-radius: 50%;"></div>
+                    <div>
+                        <h4 style="font-weight: 800; font-size: 18px;">Elena Rodriguez</h4>
+                        <p style="color: #888; font-size: 14px;">Risk Analytics Director, Amex</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Pricing Section -->
+<section id="pricing" style="padding: 120px 40px;">
+    <div style="max-width: 1400px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 80px;">
+            <div style="display: inline-block; padding: 8px 24px; background: rgba(0,240,255,0.1); border-radius: 100px; margin-bottom: 25px;">
+                <span style="color: #00f0ff; font-size: 13px; font-weight: 700; letter-spacing: 3px;">PRICING</span>
+            </div>
+            <h2 style="font-size: clamp(40px, 5vw, 60px); font-weight: 800;">
+                Choose Your <span class="gradient-text-premium">Plan</span>
+            </h2>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 40px;">
+            <div class="glass-card-premium pricing-premium">
+                <h3 style="font-size: 30px; margin-bottom: 15px;">Starter</h3>
+                <div style="font-size: 52px; font-weight: 900; margin-bottom: 25px;">
+                    <span class="gradient-text-premium">$499</span>
+                    <span style="font-size: 16px; color: #666;">/month</span>
+                </div>
+                <ul style="list-style: none; margin-bottom: 40px;">
+                    <li style="padding: 14px 0; display: flex; align-items: center; gap: 12px;"><i class="fas fa-check-circle text-green-400"></i> 10,000 predictions/month</li>
+                    <li style="padding: 14px 0; display: flex; align-items: center; gap: 12px;"><i class="fas fa-check-circle text-green-400"></i> Basic analytics dashboard</li>
+                    <li style="padding: 14px 0; display: flex; align-items: center; gap: 12px;"><i class="fas fa-check-circle text-green-400"></i> Email support</li>
+                    <li style="padding: 14px 0; display: flex; align-items: center; gap: 12px; opacity: 0.5;"><i class="fas fa-times-circle text-gray-600"></i> API access</li>
+                </ul>
+                <a href="/signup" class="btn-premium" style="display: block; text-align: center;">Get Started</a>
+            </div>
+            
+            <div class="glass-card-premium pricing-premium popular">
+                <div class="popular-badge-premium">🔥 MOST POPULAR</div>
+                <h3 style="font-size: 30px; margin-bottom: 15px;">Professional</h3>
+                <div style="font-size: 52px; font-weight: 900; margin-bottom: 25px;">
+                    <span class="gradient-text-premium">$1,499</span>
+                    <span style="font-size: 16px; color: #666;">/month</span>
+                </div>
+                <ul style="list-style: none; margin-bottom: 40px;">
+                    <li style="padding: 14px 0; display: flex; align-items: center; gap: 12px;"><i class="fas fa-check-circle text-green-400"></i> 100,000 predictions/month</li>
+                    <li style="padding: 14px 0; display: flex; align-items: center; gap: 12px;"><i class="fas fa-check-circle text-green-400"></i> Advanced analytics + charts</li>
+                    <li style="padding: 14px 0; display: flex; align-items: center; gap: 12px;"><i class="fas fa-check-circle text-green-400"></i> Priority 24/7 support</li>
+                    <li style="padding: 14px 0; display: flex; align-items: center; gap: 12px;"><i class="fas fa-check-circle text-green-400"></i> REST API + WebSocket</li>
+                </ul>
+                <a href="/signup" class="btn-premium" style="display: block; text-align: center;">Get Started</a>
+            </div>
+            
+            <div class="glass-card-premium pricing-premium">
+                <h3 style="font-size: 30px; margin-bottom: 15px;">Enterprise</h3>
+                <div style="font-size: 52px; font-weight: 900; margin-bottom: 25px;">
+                    <span class="gradient-text-premium">Custom</span>
+                </div>
+                <ul style="list-style: none; margin-bottom: 40px;">
+                    <li style="padding: 14px 0; display: flex; align-items: center; gap: 12px;"><i class="fas fa-check-circle text-green-400"></i> Unlimited predictions</li>
+                    <li style="padding: 14px 0; display: flex; align-items: center; gap: 12px;"><i class="fas fa-check-circle text-green-400"></i> Dedicated infrastructure</li>
+                    <li style="padding: 14px 0; display: flex; align-items: center; gap: 12px;"><i class="fas fa-check-circle text-green-400"></i> 24/7 dedicated support</li>
+                    <li style="padding: 14px 0; display: flex; align-items: center; gap: 12px;"><i class="fas fa-check-circle text-green-400"></i> Custom model training</li>
+                </ul>
+                <a href="/contact" class="btn-outline-premium" style="display: block; text-align: center;">Contact Sales</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section style="padding: 120px 40px; background: linear-gradient(135deg, rgba(0,240,255,0.05), rgba(124,58,237,0.05), rgba(255,0,102,0.05));">
+    <div style="max-width: 900px; margin: 0 auto; text-align: center;">
+        <h2 style="font-size: 48px; font-weight: 800; margin-bottom: 30px; line-height: 1.2;">
+            Ready to Transform Your <span class="gradient-text-premium">Risk Management</span>?
+        </h2>
+        <p style="color: #a0a0b0; margin-bottom: 45px; font-size: 18px; line-height: 1.6;">
+            Join 500+ financial institutions using SICRSense for IFRS 9 compliance and credit risk intelligence.
+        </p>
+        <div style="display: flex; gap: 25px; justify-content: center; flex-wrap: wrap;">
+            <a href="/signup" class="btn-premium" style="padding: 18px 45px; font-size: 18px;">
+                Start Free Trial <i class="fas fa-arrow-right ml-2"></i>
+            </a>
+            <button class="btn-outline-premium" style="padding: 16px 40px; font-size: 16px;" onclick="window.location.href='/contact'">
+                Schedule Enterprise Demo
+            </button>
+        </div>
+        
+        <div style="margin-top: 60px; display: flex; justify-content: center; gap: 50px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 10px;"><i class="fas fa-shield-alt text-cyan-400 text-xl"></i><span style="color: #888;">Bank-level security</span></div>
+            <div style="display: flex; align-items: center; gap: 10px;"><i class="fas fa-chart-line text-purple-400 text-xl"></i><span style="color: #888;">Real-time analytics</span></div>
+            <div style="display: flex; align-items: center; gap: 10px;"><i class="fas fa-headset text-pink-400 text-xl"></i><span style="color: #888;">24/7 enterprise support</span></div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer style="padding: 70px 40px 40px; border-top: 1px solid rgba(255,255,255,0.05); background: #05050a;">
+    <div style="max-width: 1400px; margin: 0 auto;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 50px; margin-bottom: 60px;">
+            <div>
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 25px;">
+                    <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #00f0ff, #7c3aed); border-radius: 14px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-brain text-white text-2xl"></i>
+                    </div>
+                    <span style="font-family: 'Orbitron', monospace; font-weight: 800; font-size: 22px;">SICRSense</span>
+                </div>
+                <p style="color: #666; line-height: 1.6;">The future of credit risk intelligence. Real-time SICR detection for modern financial institutions.</p>
+            </div>
+            <div>
+                <h4 style="margin-bottom: 25px; font-size: 18px; font-weight: 700;">Product</h4>
+                <ul style="list-style: none;">
+                    <li style="margin-bottom: 12px;"><a href="#features" style="color: #666; text-decoration: none; transition: color 0.3s;">Features</a></li>
+                    <li style="margin-bottom: 12px;"><a href="#pricing" style="color: #666; text-decoration: none; transition: color 0.3s;">Pricing</a></li>
+                    <li style="margin-bottom: 12px;"><a href="#" style="color: #666; text-decoration: none; transition: color 0.3s;">API Documentation</a></li>
+                    <li style="margin-bottom: 12px;"><a href="#" style="color: #666; text-decoration: none; transition: color 0.3s;">Integrations</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 style="margin-bottom: 25px; font-size: 18px; font-weight: 700;">Company</h4>
+                <ul style="list-style: none;">
+                    <li style="margin-bottom: 12px;"><a href="#" style="color: #666; text-decoration: none; transition: color 0.3s;">About Us</a></li>
+                    <li style="margin-bottom: 12px;"><a href="#" style="color: #666; text-decoration: none; transition: color 0.3s;">Blog</a></li>
+                    <li style="margin-bottom: 12px;"><a href="#" style="color: #666; text-decoration: none; transition: color 0.3s;">Careers</a></li>
+                    <li style="margin-bottom: 12px;"><a href="#" style="color: #666; text-decoration: none; transition: color 0.3s;">Contact</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 style="margin-bottom: 25px; font-size: 18px; font-weight: 700;">Legal</h4>
+                <ul style="list-style: none;">
+                    <li style="margin-bottom: 12px;"><a href="#" style="color: #666; text-decoration: none; transition: color 0.3s;">Privacy Policy</a></li>
+                    <li style="margin-bottom: 12px;"><a href="#" style="color: #666; text-decoration: none; transition: color 0.3s;">Terms of Service</a></li>
+                    <li style="margin-bottom: 12px;"><a href="#" style="color: #666; text-decoration: none; transition: color 0.3s;">GDPR Compliance</a></li>
+                    <li style="margin-bottom: 12px;"><a href="#" style="color: #666; text-decoration: none; transition: color 0.3s;">Security</a></li>
+                </ul>
+            </div>
+        </div>
+        <div style="text-align: center; padding-top: 35px; border-top: 1px solid rgba(255,255,255,0.05);">
+            <p style="color: #666;">&copy; 2026 SICRSense. All rights reserved. | Powered by Quantum ML Engine</p>
+        </div>
+    </div>
+</footer>
+
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
+        }
+    }
+</script>
+
+<script type="module">
+    import * as THREE from 'three';
+    
+    // Galaxy Background
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas-galaxy'), alpha: true, antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    
+    // Main Galaxy
+    const galaxyGeometry = new THREE.BufferGeometry();
+    const galaxyCount = 5000;
+    const positions = new Float32Array(galaxyCount * 3);
+    const colors = new Float32Array(galaxyCount * 3);
+    
+    for (let i = 0; i < galaxyCount; i++) {
+        const radius = Math.random() * 10;
+        const angle = Math.random() * Math.PI * 2;
+        const height = (Math.random() - 0.5) * 4;
+        
+        positions[i*3] = Math.cos(angle) * radius;
+        positions[i*3+1] = height;
+        positions[i*3+2] = Math.sin(angle) * radius;
+        
+        const color = new THREE.Color().setHSL(0.55 + Math.random() * 0.2, 1, 0.5);
+        colors[i*3] = color.r;
+        colors[i*3+1] = color.g;
+        colors[i*3+2] = color.b;
+    }
+    
+    galaxyGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    galaxyGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    
+    const galaxyMaterial = new THREE.PointsMaterial({ size: 0.07, vertexColors: true, blending: THREE.AdditiveBlending });
+    const galaxy = new THREE.Points(galaxyGeometry, galaxyMaterial);
+    scene.add(galaxy);
+    
+    camera.position.z = 7;
+    
+    let rotation = 0;
+    function animateGalaxy() {
+        requestAnimationFrame(animateGalaxy);
+        rotation += 0.001;
+        galaxy.rotation.y = rotation;
+        galaxy.rotation.x = Math.sin(rotation * 0.3) * 0.05;
+        renderer.render(scene, camera);
+    }
+    animateGalaxy();
+    
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+</script>
+
+<script>
+    // Aurora Borealis Effect
+    const auroraCanvas = document.getElementById('canvas-aurora');
+    const auroraCtx = auroraCanvas.getContext('2d');
+    let auroraTime = 0;
+    
+    function resizeAurora() {
+        auroraCanvas.width = window.innerWidth;
+        auroraCanvas.height = window.innerHeight;
+    }
+    resizeAurora();
+    
+    function drawAurora() {
+        auroraTime += 0.003;
+        auroraCtx.fillStyle = '#05050a';
+        auroraCtx.fillRect(0, 0, auroraCanvas.width, auroraCanvas.height);
+        
+        for (let i = 0; i < 20; i++) {
+            const x = Math.sin(auroraTime * 0.3 + i) * 200 + auroraCanvas.width / 2;
+            const y = Math.cos(auroraTime * 0.2 + i * 1.5) * 100 + auroraCanvas.height / 2;
+            const gradient = auroraCtx.createRadialGradient(x, y, 0, x, y, 200);
+            gradient.addColorStop(0, `hsla(${180 + Math.sin(auroraTime + i) * 30}, 80%, 60%, 0.03)`);
+            gradient.addColorStop(1, 'transparent');
+            auroraCtx.fillStyle = gradient;
+            auroraCtx.beginPath();
+            auroraCtx.arc(x, y, 200, 0, Math.PI * 2);
+            auroraCtx.fill();
+        }
+        
+        requestAnimationFrame(drawAurora);
+    }
+    drawAurora();
+    window.addEventListener('resize', resizeAurora);
+    
+    // Neural Network
+    const neuralCanvas = document.getElementById('canvas-neural');
+    const neuralCtx = neuralCanvas.getContext('2d');
+    let neuralNodes = [];
+    
+    function resizeNeural() {
+        neuralCanvas.width = window.innerWidth;
+        neuralCanvas.height = window.innerHeight;
+        neuralNodes = [];
+        for (let i = 0; i < 100; i++) {
+            neuralNodes.push({
+                x: Math.random() * neuralCanvas.width,
+                y: Math.random() * neuralCanvas.height,
+                vx: (Math.random() - 0.5) * 0.3,
+                vy: (Math.random() - 0.5) * 0.3
+            });
+        }
+    }
+    resizeNeural();
+    
+    function drawNeural() {
+        neuralCtx.fillStyle = 'rgba(5,5,10,0.08)';
+        neuralCtx.fillRect(0, 0, neuralCanvas.width, neuralCanvas.height);
+        
+        neuralNodes.forEach(node => {
+            node.x += node.vx;
+            node.y += node.vy;
+            if (node.x < 0 || node.x > neuralCanvas.width) node.vx *= -1;
+            if (node.y < 0 || node.y > neuralCanvas.height) node.vy *= -1;
+        });
+        
+        for (let i = 0; i < neuralNodes.length; i++) {
+            for (let j = i + 1; j < neuralNodes.length; j++) {
+                const dx = neuralNodes[i].x - neuralNodes[j].x;
+                const dy = neuralNodes[i].y - neuralNodes[j].y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 150) {
+                    const opacity = (1 - dist / 150) * 0.15;
+                    neuralCtx.beginPath();
+                    neuralCtx.moveTo(neuralNodes[i].x, neuralNodes[i].y);
+                    neuralCtx.lineTo(neuralNodes[j].x, neuralNodes[j].y);
+                    neuralCtx.strokeStyle = `rgba(0, 240, 255, ${opacity})`;
+                    neuralCtx.stroke();
+                }
+            }
+        }
+        
+        neuralNodes.forEach(node => {
+            neuralCtx.beginPath();
+            neuralCtx.arc(node.x, node.y, 2, 0, Math.PI * 2);
+            neuralCtx.fillStyle = `rgba(0, 240, 255, 0.3)`;
+            neuralCtx.fill();
+        });
+        
+        requestAnimationFrame(drawNeural);
+    }
+    drawNeural();
+    window.addEventListener('resize', resizeNeural);
+    
+    // Loading Screen
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            const loader = document.getElementById('loadingScreen');
+            loader.style.opacity = '0';
+            setTimeout(() => loader.style.display = 'none', 800);
+        }, 1500);
+    });
+    
+    // Custom Cursor
+    const cursor = document.getElementById('cursor');
+    const cursorDot = document.getElementById('cursorDot');
+    
+    if (window.innerWidth > 1024) {
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+            cursorDot.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+        });
+        
+        const hoverTargets = document.querySelectorAll('a, button, .glass-card-premium, .workflow-node-premium, .feature-card, .testimonial-premium');
+        hoverTargets.forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                cursor.style.width = '55px';
+                cursor.style.height = '55px';
+                cursor.style.borderColor = '#7c3aed';
+            });
+            el.addEventListener('mouseleave', () => {
+                cursor.style.width = '40px';
+                cursor.style.height = '40px';
+                cursor.style.borderColor = '#00f0ff';
+            });
+        });
+    }
+    
+    // Particles
+    function initParticles() {
+        const container = document.getElementById('particlesContainer');
+        for (let i = 0; i < 100; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle-premium';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.width = Math.random() * 5 + 2 + 'px';
+            particle.style.height = particle.style.width;
+            particle.style.animationDelay = Math.random() * 5 + 's';
+            particle.style.animationDuration = (Math.random() * 4 + 3) + 's';
+            container.appendChild(particle);
+        }
+    }
+    initParticles();
+    
+    // Counter Animation
+    function animateCounter(element, target, suffix = '') {
+        let current = 0;
+        const steps = 60;
+        const increment = target / steps;
+        let step = 0;
+        const interval = setInterval(() => {
+            step++;
+            current += increment;
+            if (step >= steps) {
+                element.textContent = target + suffix;
+                clearInterval(interval);
+            } else {
+                element.textContent = Math.floor(current) + suffix;
+            }
+        }, 20);
+    }
+    
+    const counterObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && !entry.target.dataset.animated) {
+                entry.target.dataset.animated = 'true';
+                const target = parseFloat(entry.target.dataset.target);
+                if (entry.target.id === 'stat2') animateCounter(entry.target, target, 'ms');
+                else if (entry.target.id === 'stat4') animateCounter(entry.target, target, '+');
+                else animateCounter(entry.target, target, '%');
+            }
+        });
+    }, { threshold: 0.5 });
+    
+    document.querySelectorAll('.stat-number-premium').forEach(el => counterObserver.observe(el));
+    
+    // Scroll Animations
+    const animatedElements = document.querySelectorAll('.glass-card-premium, .workflow-node-premium, .pricing-premium, .testimonial-premium, .feature-card');
+    const scrollAnimObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, { threshold: 0.1 });
+    
+    animatedElements.forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(30px)';
+        el.style.transition = 'all 0.6s cubic-bezier(0.2, 0.9, 0.4, 1.2)';
+        scrollAnimObserver.observe(el);
+    });
+    
+    // Live Demo
+    const ring = document.getElementById('demoRing');
+    const percentEl = document.getElementById('demoPercent');
+    const riskEl = document.getElementById('demoRisk');
+    const latencyEl = document.getElementById('demoLatency');
+    const throughputEl = document.getElementById('demoThroughput');
+    const creditScore = document.getElementById('creditScore');
+    const daysPastDue = document.getElementById('daysPastDue');
+    const pdChange = document.getElementById('pdChange');
+    const scoreValue = document.getElementById('scoreValue');
+    const dpdValue = document.getElementById('dpdValue');
+    const pdValue = document.getElementById('pdValue');
+    const predictedStage = document.getElementById('predictedStage');
+    const stageDesc = document.getElementById('stageDesc');
+    
+    function updateDemo() {
+        const score = parseInt(creditScore.value);
+        const dpd = parseInt(daysPastDue.value);
+        const pd = parseInt(pdChange.value);
+        
+        scoreValue.textContent = score;
+        dpdValue.textContent = dpd;
+        pdValue.textContent = pd + '%';
+        
+        let risk = 0;
+        if (score < 500) risk += 50;
+        else if (score < 600) risk += 35;
+        else if (score < 700) risk += 20;
+        else risk += 10;
+        
+        risk += Math.min(35, dpd * 0.7);
+        risk += Math.min(25, pd * 0.12);
+        risk = Math.min(98, risk);
+        
+        const circumference = 534;
+        const offset = circumference - (risk / 100) * circumference;
+        ring.style.strokeDashoffset = offset;
+        percentEl.textContent = risk + '%';
+        
+        if (risk < 30) {
+            riskEl.textContent = 'Low';
+            riskEl.style.color = '#10b981';
+            ring.style.stroke = '#10b981';
+            predictedStage.textContent = 'Stage 1';
+            stageDesc.textContent = 'Performing asset with low credit risk';
+            stageDesc.style.color = '#10b981';
+        } else if (risk < 70) {
+            riskEl.textContent = 'Medium';
+            riskEl.style.color = '#f59e0b';
+            ring.style.stroke = '#f59e0b';
+            predictedStage.textContent = 'Stage 2';
+            stageDesc.textContent = 'Significant increase in credit risk (SICR)';
+            stageDesc.style.color = '#f59e0b';
+        } else {
+            riskEl.textContent = 'High';
+            riskEl.style.color = '#ef4444';
+            ring.style.stroke = '#ef4444';
+            predictedStage.textContent = 'Stage 3';
+            stageDesc.textContent = 'Credit-impaired asset requiring immediate action';
+            stageDesc.style.color = '#ef4444';
+        }
+        
+        latencyEl.textContent = Math.round(25 + Math.random() * 35) + 'ms';
+    }
+    
+    let throughputInterval;
+    function startThroughput() {
+        if (throughputInterval) clearInterval(throughputInterval);
+        let tp = 0;
+        throughputInterval = setInterval(() => {
+            tp = Math.min(800, tp + Math.random() * 20);
+            throughputEl.textContent = Math.floor(tp);
+        }, 500);
+    }
+    
+    creditScore.addEventListener('input', updateDemo);
+    daysPastDue.addEventListener('input', updateDemo);
+    pdChange.addEventListener('input', updateDemo);
+    
+    function simulatePrediction() {
+        creditScore.value = Math.floor(Math.random() * 500) + 350;
+        daysPastDue.value = Math.floor(Math.random() * 70);
+        pdChange.value = Math.floor(Math.random() * 160);
+        updateDemo();
+        
+        const resultDiv = document.getElementById('stageResult');
+        resultDiv.style.transform = 'scale(1.03)';
+        setTimeout(() => resultDiv.style.transform = 'scale(1)', 300);
+    }
+    
+    updateDemo();
+    startThroughput();
+    
+    // Scroll Functions
+    window.scrollToFeatures = () => document.getElementById('features').scrollIntoView({ behavior: 'smooth' });
+    window.scrollToDemo = () => document.getElementById('demo').scrollIntoView({ behavior: 'smooth' });
+    window.simulatePrediction = simulatePrediction;
+</script>
+</body>
+</html>

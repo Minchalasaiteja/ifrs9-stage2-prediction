@@ -1,0 +1,262 @@
+stage_2_migration
+  Binary flag indicating whether the loan, currently classified as IFRS 9
+  Stage 1 (performing, 12-month ECL), was reclassified to Stage 2 (significant
+  increase in credit risk, lifetime ECL) at the next quarterly assessment date.
+  A Stage 2 reclassification requires the bank to hold substantially higher
+  loan loss provisions, directly impacting reported profitability and capital.
+  Values : 1 (migrated to Stage 2), 0 (remained in Stage 1)
+  Overall migration rate : ~22.0 %
+
+─────────────────────────────────────────────────────────────────────────────
+SENTINEL VALUES FOR NON-APPLICABLE FIELDS
+─────────────────────────────────────────────────────────────────────────────
+  loan_to_value_pct          : -1    = not applicable (unsecured product)
+  utilisation_rate_pct       : -1    = not applicable (non-revolving product)
+  property_value_change_pct  : -999  = not applicable (non-mortgage product)
+  ltv_change_pct_since_orig  : -999  = not applicable (non-mortgage product)
+  origination_ltv_pct        : -1    = not applicable (unsecured product)
+
+─────────────────────────────────────────────────────────────────────────────
+COLUMNS (36 total)
+─────────────────────────────────────────────────────────────────────────────
+
+── Loan Identity ─────────────────────────────────────────────────────────────
+
+1.  loan_id
+    Unique identifier for each loan in the portfolio.
+    Format: LN-XXXXXXXX.
+
+2.  assessment_date
+    The quarter-start date at which this snapshot was taken.
+    Format: YYYY-QN (e.g., 2023-Q3). Spans 2021–2024.
+
+── Loan Classification ───────────────────────────────────────────────────────
+
+3.  loan_type
+    Product type of the loan.
+    Values: Residential Mortgage | Buy-to-Let Mortgage | Personal Loan |
+            Auto Finance | SME Term Loan |
+            Corporate Revolving Credit Facility | Credit Card
+    Unsecured products (Credit Card, Personal Loan) carry higher migration
+    rates due to higher inherent PD and lack of collateral protection.
+
+4.  origination_channel
+    The channel through which the loan was originated.
+    Values: Branch | Mortgage Broker | Online / Digital | Direct Sales |
+            Relationship Manager
+
+5.  bank_region
+    Geographic region of the UK in which the borrower is located.
+    Values: London | South East | Midlands | North West | North East |
+            Scotland | Wales | South West
+
+── Loan Terms ────────────────────────────────────────────────────────────────
+
+6.  loan_amount_gbp
+    Original principal amount of the loan in GBP at inception.
+    Range: £1,000–£5,000,000. Correlated with product type (mortgages highest,
+    credit cards lowest).
+
+7.  outstanding_balance_gbp
+    Current outstanding balance on the loan at the assessment date.
+    Range: £300–£4,900,000. Always ≤ loan_amount_gbp.
+
+8.  original_loan_term_months
+    Total contractual term of the loan in months at origination.
+    Range: 12–300 months.
+
+9.  remaining_term_months
+    Number of months remaining until the loan's scheduled maturity date.
+    Range: 1 month upward. Loans near maturity (< 12 months) carry slightly
+    elevated migration risk as the borrower approaches final balloon payments.
+
+10. interest_rate_pct
+    Annual interest rate on the loan at the assessment date (for variable rate
+    products, this is the current rate including any tracker margin).
+    Range: 1.5 %–35.0 %. Credit cards average ~21.5 %; mortgages ~4.2 %.
+
+11. loan_to_value_pct
+    Current loan-to-value ratio: outstanding balance divided by the most
+    recent assessed collateral value, expressed as a percentage.
+    Applies to: Residential Mortgage, Buy-to-Let Mortgage, Auto Finance,
+    SME Term Loan (where secured against assets).
+    Range: 30 %–100 %. Value -1 = not applicable (unsecured product).
+
+12. is_fixed_rate
+    Whether the loan bears a fixed interest rate (as opposed to variable,
+    tracker, or base-rate-linked).
+    Values: Yes | No
+    Fixed-rate borrowers are insulated from rate rises in the short term;
+    variable-rate borrowers face immediate payment pressure in rising
+    rate environments.
+
+13. vintage_year
+    The calendar year in which the loan was originated. Older vintages
+    originated during lower credit standards or prior to a rate cycle may
+    carry elevated migration risk.
+    Range: 2004–2024.
+
+── Borrower Credit Profile ───────────────────────────────────────────────────
+
+14. internal_credit_score
+    The bank's proprietary credit score for the borrower at the assessment
+    date, incorporating payment history, utilisation, credit depth, and
+    bureau data.
+    Range: 300–900. Higher scores indicate stronger creditworthiness.
+    Scores below 600 are associated with materially elevated migration risk.
+
+15. credit_score_change_last_quarter
+    Point change in the internal credit score over the preceding quarter
+    (positive = improvement, negative = deterioration). A decline of more
+    than 20 points is a meaningful early warning signal.
+    Range: -120 to +80.
+
+16. bureau_inquiries_last_6m
+    Number of external credit bureau inquiries (hard searches) recorded
+    against the borrower in the 6 months before the assessment date.
+    High search frequency can indicate financial stress or active credit
+    shopping.
+    Range: 0–12.
+
+17. has_other_credit_with_bank
+    Whether the borrower holds one or more additional credit products with
+    this bank (e.g., current account, credit card, second mortgage). Enables
+    behavioural cross-product monitoring.
+    Values: Yes | No
+
+── Payment Behaviour ─────────────────────────────────────────────────────────
+
+18. days_past_due_current
+    Number of days the borrower's most recent payment is past due at the
+    assessment date. All loans in Stage 1 are capped at 29 DPD (30+ DPD
+    triggers automatic Stage 2 classification per IFRS 9 backstop).
+    Range: 0–29 days. 88 % of loans are fully current (0 DPD).
+    DPD buckets by migration rate:
+      0 DPD → 15.9 %  |  1-6 DPD → 58.8 %  |  7-13 DPD → 71.8 %  |
+      14-29 DPD → 80.2 %
+
+19. missed_payments_last_12m
+    Total number of missed or returned payment events in the 12 months before
+    the assessment date.
+    Range: 0–8. Loans with 2+ missed payments have a 57.7 % migration rate
+    vs 10.3 % for loans with zero missed payments.
+
+20. payment_reduction_requested
+    Whether the borrower requested a formal payment reduction, holiday, or
+    deferral in the 12 months before the assessment date.
+    Values: Yes | No
+    Strong distress signal: 54.3 % migration rate (Yes) vs 17.9 % (No).
+
+21. forbearance_history
+    Whether the borrower has been granted any formal forbearance arrangement
+    (e.g., interest-only period, payment moratorium, term extension) at any
+    point in the past 3 years.
+    Values: Yes | No. Migration rate: 44.7 % (Yes) vs 19.0 % (No).
+
+22. utilisation_rate_pct
+    For revolving credit products (Credit Card, Corporate Revolving Credit
+    Facility): current balance as a percentage of the credit limit.
+    High utilisation (> 80 %) signals financial stress.
+    Range: 1 %–100 %. Value -1 = not applicable (non-revolving product).
+
+── Macro and External Triggers ──────────────────────────────────────────────
+
+23. sector_stress_flag
+    For SME and corporate borrowers: whether the borrower's primary operating
+    sector has been flagged by the bank's credit risk team as under elevated
+    macroeconomic or sector-specific stress (e.g., commercial real estate,
+    hospitality, retail).
+    Values: Yes | No
+
+24. property_value_change_pct_last_qtr
+    For mortgage products: percentage change in the property's assessed
+    market value over the prior quarter, derived from the bank's automated
+    valuation model. Negative values indicate falling collateral values.
+    Range: -12 % to +10 %. Value -999 = not applicable (non-mortgage).
+
+25. interest_rate_environment
+    The prevailing interest rate environment at the assessment date, classified
+    from the Bank of England base rate trajectory.
+    Values: Rising | Stable | Falling
+    Rising rate environments are associated with higher migration rates (26.8 %
+    vs ~19 % in stable/falling environments), particularly for variable-rate
+    borrowers facing payment shock.
+
+── IFRS 9 Quantitative Triggers ─────────────────────────────────────────────
+
+26. pd_12m_at_origination_pct
+    The 12-month probability of default (PD) model output for this loan at
+    the time of origination. Forms the baseline against which Significant
+    Increase in Credit Risk (SICR) is measured under IFRS 9.
+    Range: 0.05 %–15.0 %.
+
+27. pd_12m_current_pct
+    The 12-month PD model output recalculated at the assessment date,
+    incorporating current payment behaviour, credit score, macroeconomic
+    overlays, and sectoral factors.
+    Range: 0.02 %–30.0 %. A key IFRS 9 staging input.
+
+28. pd_relative_change_pct
+    Percentage change in the 12-month PD relative to the origination PD:
+    (pd_12m_current - pd_12m_at_origination) / pd_12m_at_origination × 100.
+    The primary IFRS 9 SICR quantitative threshold — many banks use a doubling
+    of PD (> 100 % relative change) as a mandatory Stage 2 trigger.
+    Range: -90 % to +1,500 %.
+    Migration by band: < 0% → 2.8% | 0–50% → 7.1% | 50–100% → 15.1% |
+                       100–200% → 44.7% | > 200% → 79.1%
+
+29. ltv_change_pct_since_origination
+    For secured loans: change in the LTV ratio since origination (positive =
+    LTV has increased, i.e., collateral has declined relative to balance).
+    Rising LTV signals reduced collateral coverage and elevated loss-given-
+    default.
+    Range: -30 % to +40 %. Value -999 = not applicable.
+
+── Loan History and Borrower Behaviour ──────────────────────────────────────
+
+30. is_restructured_loan
+    Whether the loan terms have been formally restructured at any point since
+    origination (e.g., rate reduction, term extension, capitalisation of
+    arrears). Restructured loans carry a higher migration rate (36.5 % vs
+    20.9 % for non-restructured).
+    Values: Yes | No
+
+31. months_since_last_restructure
+    For restructured loans: months elapsed since the most recent formal
+    restructuring event. Recent restructures (< 6 months) carry higher
+    residual risk. Set to 0 for non-restructured loans.
+    Range: 0–36 months.
+
+32. early_repayment_flag
+    Whether the borrower has made one or more early or overpayments in the
+    3 months before the assessment date, reducing the balance ahead of
+    schedule. A protective signal indicating financial capacity and borrower
+    engagement.
+    Values: Yes | No. Migration rate: 10.0 % (Yes) vs 24.4 % (No).
+
+33. current_account_debit_flag
+    Whether the borrower's main current account (held with this bank) went
+    into an unplanned debit balance or exceeded its overdraft limit in the
+    prior quarter. A strong cross-product financial distress indicator.
+    Values: Yes | No
+
+34. origination_ltv_pct
+    The LTV ratio at the time of loan origination. Higher origination LTVs
+    indicate lower equity cushion from inception and greater vulnerability to
+    collateral value declines.
+    Range: 40 %–99 %. Value -1 = not applicable (unsecured product).
+
+35. months_on_book
+    Number of months the loan has been active since origination.
+    Range: 3 to original_loan_term_months.
+
+36. stage_2_migration
+    Binary variable.
+    1 = The loan was reclassified from Stage 1 (12-month ECL) to Stage 2
+        (lifetime ECL) at the next quarterly IFRS 9 assessment. This is
+        triggered either by a quantitative SICR test (pd_relative_change > 100 %),
+        a qualitative SICR trigger (payment arrears, forbearance, restructuring),
+        or the IFRS 9 backstop rule (30+ days past due). The reclassification
+        requires the bank to recognise a significantly larger loss provision.
+    0 = The loan remained in Stage 1 at the next assessment date.
+    Overall migration rate : ~22.0 %

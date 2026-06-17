@@ -34,14 +34,18 @@ python -m venv venv
 venv\Scripts\Activate
 
 ```
-# Install SICR_SENSE/requirements.txt
-```bash
-https://github.com/Minchalasaiteja/IFRS-9-stage2-prediction/blob/main/SICR_SENSE/requirements.txt
-```
 
-### CONFIGURE YOUR ENV VALUES INTO .env refere to https://github.com/Minchalasaiteja/IFRS-9-stage2-prediction/blob/dev/.env.example 
+CONFIGURE YOUR ENV VALUES INTO .env 
+
+Refer to https://github.com/Minchalasaiteja/IFRS-9-stage2-prediction/blob/dev/.env.example  
+
+Install SICR_SENSE/requirements.txt
 
 SICR_SENSE/requirements.txt
+
+```bash
+pip install -r requirements.txt
+```
 
 # RUN THE APPLICATION 
 

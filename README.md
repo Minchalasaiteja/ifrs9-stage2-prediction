@@ -20,10 +20,6 @@
 
 ```bash
 git clone https://github.com/Minchalasaiteja/IFRS-9-stage2-prediction.git
-cd SICR SENSE
-# Activate your Virtual Environment
-# Install SICR_SENSE/requirements.txt
-https://github.com/Minchalasaiteja/IFRS-9-stage2-prediction/blob/main/SICR_SENSE/requirements.txt
 ```
 
 ```bash
@@ -43,16 +39,19 @@ venv\Scripts\Activate
 https://github.com/Minchalasaiteja/IFRS-9-stage2-prediction/blob/main/SICR_SENSE/requirements.txt
 ```
 
-# CONFIGURE YOUR ENV VALUES INTO .env refere to https://github.com/Minchalasaiteja/IFRS-9-stage2-prediction/blob/dev/.env.example
+### CONFIGURE YOUR ENV VALUES INTO .env refere to https://github.com/Minchalasaiteja/IFRS-9-stage2-prediction/blob/dev/.env.example 
+
+SICR_SENSE/requirements.txt
 
 # RUN THE APPLICATION 
 
 ```bash
 uvicorn app.main:app --reload
 ```
+###  if doesnt work and python path issue 
 
 ```bash
-
+python -m app.main:app --reload
 ```
 
 

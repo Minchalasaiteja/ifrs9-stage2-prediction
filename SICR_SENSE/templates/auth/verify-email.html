@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SICRSense | Verify Email</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #131320;
+      --accent: #00f0ff;
+      --accent2: #7c3aed;
+      --glass-bg: rgba(19, 19, 32, 0.6);
+      --glass-border: rgba(255, 255, 255, 0.1);
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-primary);
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+    }
+    
+    .gradient-btn {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      padding: 14px 32px;
+      border-radius: 12px;
+      color: white;
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+    
+    .gradient-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 40px rgba(0, 240, 255, 0.3);
+    }
+    
+    .success-icon {
+      animation: scaleIn 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    }
+    
+    @keyframes scaleIn {
+      0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(0, 240, 255, 0.2); }
+      50% { box-shadow: 0 0 40px rgba(0, 240, 255, 0.4); }
+    }
+    
+    .pulse-animation {
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    .loader {
+      width: 48px;
+      height: 48px;
+      border: 3px solid rgba(0, 240, 255, 0.15);
+      border-bottom-color: var(--accent);
+      border-radius: 50%;
+      animation: rotation 0.9s linear infinite;
+    }
+    
+    @keyframes rotation {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="relative z-10 w-full max-w-md mx-4">
+    <!-- Logo -->
+    <div class="text-center mb-8">
+      <a href="/" class="inline-flex items-center gap-3 mb-4">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-purple-600 flex items-center justify-center pulse-animation">
+          <i class="fas fa-landmark text-white text-2xl"></i>
+        </div>
+        <span class="font-['Space_Grotesk'] font-bold text-2xl">SICRSense</span>
+      </a>
+    </div>
+    
+    <!-- Loading State -->
+    <div id="loading-state" class="glass-card p-8 text-center">
+      <div class="flex justify-center mb-6">
+        <div class="loader"></div>
+      </div>
+      <h3 class="text-xl font-bold mb-2">Verifying Your Email</h3>
+      <p class="text-gray-400">Please wait while we verify your email address...</p>
+    </div>
+    
+    <!-- Success State -->
+    <div id="success-state" class="glass-card p-8 text-center hidden">
+      <div class="w-20 h-20 rounded-full bg-green-400/10 flex items-center justify-center mx-auto mb-6 success-icon">
+        <i class="fas fa-check-circle text-4xl text-green-400"></i>
+      </div>
+      <h3 class="text-xl font-bold mb-2">Email Verified!</h3>
+      <p class="text-gray-400 mb-6">Your email has been successfully verified. You now have full access to all features.</p>
+      <a href="/dashboard" class="gradient-btn">
+        <i class="fas fa-arrow-right mr-2"></i> Go to Dashboard
+      </a>
+    </div>
+    
+    <!-- Error State -->
+    <div id="error-state" class="glass-card p-8 text-center hidden">
+      <div class="w-20 h-20 rounded-full bg-red-400/10 flex items-center justify-center mx-auto mb-6">
+        <i class="fas fa-exclamation-circle text-4xl text-red-400"></i>
+      </div>
+      <h3 class="text-xl font-bold mb-2">Verification Failed</h3>
+      <p class="text-gray-400 mb-2" id="error-message">The verification link is invalid or has expired.</p>
+      <p class="text-gray-500 text-sm mb-6">Please request a new verification email or contact support.</p>
+      <div class="space-y-3">
+        <button onclick="resendVerification()" class="gradient-btn w-full">
+          <i class="fas fa-paper-plane mr-2"></i> Resend Verification Email
+        </button>
+        <a href="/login" class="block text-center text-cyan-400 hover:text-cyan-300 text-sm">
+          Back to Login
+        </a>
+      </div>
+    </div>
+    
+    <!-- Already Verified State -->
+    <div id="already-verified-state" class="glass-card p-8 text-center hidden">
+      <div class="w-20 h-20 rounded-full bg-blue-400/10 flex items-center justify-center mx-auto mb-6">
+        <i class="fas fa-info-circle text-4xl text-blue-400"></i>
+      </div>
+      <h3 class="text-xl font-bold mb-2">Already Verified</h3>
+      <p class="text-gray-400 mb-6">Your email has already been verified. You can access all features.</p>
+      <a href="/dashboard" class="gradient-btn">
+        <i class="fas fa-arrow-right mr-2"></i> Go to Dashboard
+      </a>
+    </div>
+  </div>
+  
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    
+    async function verifyEmail() {
+      if (!token) {
+        showError('No verification token provided.');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/api/v1/auth/verify-email?token=${token}`, {
+          method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        document.getElementById('loading-state').classList.add('hidden');
+        
+        if (response.ok) {
+          if (data.already_verified) {
+            document.getElementById('already-verified-state').classList.remove('hidden');
+          } else {
+            document.getElementById('success-state').classList.remove('hidden');
+          }
+        } else {
+          showError(data.detail || 'Verification failed');
+        }
+      } catch (error) {
+        showError('Network error occurred. Please try again.');
+      }
+    }
+    
+    function showError(message) {
+      document.getElementById('loading-state').classList.add('hidden');
+      document.getElementById('error-message').textContent = message;
+      document.getElementById('error-state').classList.remove('hidden');
+    }
+    
+    async function resendVerification() {
+      const email = prompt('Please enter your email address to resend verification:');
+      if (!email) return;
+      
+      try {
+        await fetch(`/api/v1/auth/resend-verification?email=${encodeURIComponent(email)}`, {
+          method: 'POST'
+        });
+        
+        alert('Verification email sent! Please check your inbox.');
+      } catch (error) {
+        alert('Failed to resend verification email. Please try again.');
+      }
+    }
+    
+    // Start verification on page load
+    verifyEmail();
+  </script>
+  <script src="/static/js/components.js"></script>
+</body>
+</html>

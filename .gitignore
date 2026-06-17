@@ -8,3 +8,22 @@ venv/
 *.egg-info/
 .vscode/
 *.pyc
+
+
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environments
+myenv4/
+venv/
+env/
+
+# Environment variables
+.env
+
+# Logs
+logs/
+
+# VS Code
+.vscode/

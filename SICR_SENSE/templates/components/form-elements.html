@@ -1,0 +1,258 @@
+<!-- Form Elements Component -->
+<!-- Contains reusable form input types -->
+
+<!-- Text Input -->
+<macro name="text-input">
+    <div class="form-group {{ class }}">
+        {% if label %}
+        <label for="{{ id }}" class="block text-sm text-gray-400 mb-2">
+            {{ label }}
+            {% if required %}<span class="text-red-400">*</span>{% endif %}
+        </label>
+        {% endif %}
+        
+        <div class="relative">
+            {% if icon %}
+            <i class="fas fa-{{ icon }} absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-cyan-400 transition-colors"></i>
+            {% endif %}
+            
+            <input type="{{ type|default('text') }}" 
+                   id="{{ id }}" 
+                   name="{{ name|default(id) }}"
+                   class="neo-input {{ 'pl-12' if icon else '' }} {{ 'pr-12' if password_toggle }} {{ input_class }}"
+                   placeholder="{{ placeholder }}"
+                   value="{{ value }}"
+                   {{ 'required' if required }}
+                   {{ 'disabled' if disabled }}
+                   {{ 'readonly' if readonly }}
+                   {% if pattern %}pattern="{{ pattern }}"{% endif %}
+                   {% if min %}min="{{ min }}"{% endif %}
+                   {% if max %}max="{{ max }}"{% endif %}
+                   {% if minlength %}minlength="{{ minlength }}"{% endif %}
+                   {% if maxlength %}maxlength="{{ maxlength }}"{% endif %}
+                   {% if autocomplete %}autocomplete="{{ autocomplete }}"{% endif %}
+                   oninput="{{ oninput }}"
+                   onchange="{{ onchange }}">
+            
+            {% if password_toggle %}
+            <button type="button" 
+                    onclick="togglePasswordVisibility('{{ id }}', this)" 
+                    class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-cyan-400 transition-colors">
+                <i class="fas fa-eye"></i>
+            </button>
+            {% endif %}
+        </div>
+        
+        {% if hint %}
+        <p class="text-xs text-gray-500 mt-1.5">{{ hint }}</p>
+        {% endif %}
+        
+        {% if error %}
+        <p class="text-xs text-red-400 mt-1.5 flex items-center gap-1">
+            <i class="fas fa-exclamation-circle"></i> {{ error }}
+        </p>
+        {% endif %}
+        
+        {% if show_strength %}
+        <div class="password-strength mt-2">
+            <div class="h-1 bg-white/10 rounded-full overflow-hidden">
+                <div id="{{ id }}-strength-bar" class="h-full transition-all duration-300 rounded-full" style="width: 0%"></div>
+            </div>
+            <p id="{{ id }}-strength-text" class="text-xs text-gray-500 mt-1"></p>
+        </div>
+        {% endif %}
+    </div>
+</macro>
+
+<!-- Textarea -->
+<macro name="textarea">
+    <div class="form-group {{ class }}">
+        {% if label %}
+        <label for="{{ id }}" class="block text-sm text-gray-400 mb-2">
+            {{ label }}
+            {% if required %}<span class="text-red-400">*</span>{% endif %}
+        </label>
+        {% endif %}
+        
+        <textarea id="{{ id }}" 
+                  name="{{ name|default(id) }}"
+                  class="neo-input {{ input_class }}"
+                  placeholder="{{ placeholder }}"
+                  rows="{{ rows|default(4) }}"
+                  {{ 'required' if required }}
+                  {{ 'disabled' if disabled }}
+                  {{ 'readonly' if readonly }}
+                  {% if maxlength %}maxlength="{{ maxlength }}"{% endif %}
+                  oninput="autoResize(this)">{{ value }}</textarea>
+        
+        {% if show_char_count %}
+        <div class="flex justify-end mt-1">
+            <span class="text-xs text-gray-500">
+                <span id="{{ id }}-char-count">0</span>/{{ maxlength }}
+            </span>
+        </div>
+        {% endif %}
+    </div>
+</macro>
+
+<!-- Select Input -->
+<macro name="select-input">
+    <div class="form-group {{ class }}">
+        {% if label %}
+        <label for="{{ id }}" class="block text-sm text-gray-400 mb-2">
+            {{ label }}
+            {% if required %}<span class="text-red-400">*</span>{% endif %}
+        </label>
+        {% endif %}
+        
+        <div class="relative">
+            <select id="{{ id }}" 
+                    name="{{ name|default(id) }}"
+                    class="neo-input appearance-none pr-10 {{ input_class }}"
+                    {{ 'required' if required }}
+                    {{ 'disabled' if disabled }}
+                    {{ 'multiple' if multiple }}
+                    onchange="{{ onchange }}">
+                {% if placeholder %}
+                <option value="" disabled {{ 'selected' if not value }}>{{ placeholder }}</option>
+                {% endif %}
+                
+                {% for option in options %}
+                <option value="{{ option.value }}" {{ 'selected' if option.value == value }}>
+                    {{ option.label }}
+                </option>
+                {% endfor %}
+            </select>
+            
+            <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none text-sm"></i>
+        </div>
+    </div>
+</macro>
+
+<!-- Checkbox -->
+<macro name="checkbox">
+    <label class="flex items-start gap-3 cursor-pointer group {{ class }}">
+        <input type="checkbox" 
+               id="{{ id }}" 
+               name="{{ name|default(id) }}"
+               class="mt-0.5 w-4 h-4 rounded border-gray-600 bg-transparent checked:bg-cyan-400 focus:ring-cyan-400 focus:ring-offset-0 transition-colors"
+               value="{{ value }}"
+               {{ 'checked' if checked }}
+               {{ 'required' if required }}
+               {{ 'disabled' if disabled }}
+               onchange="{{ onchange }}">
+        <div>
+            {% if label %}
+            <span class="text-sm text-gray-300 group-hover:text-white transition-colors">{{ label }}</span>
+            {% endif %}
+            {% if description %}
+            <p class="text-xs text-gray-500 mt-0.5">{{ description }}</p>
+            {% endif %}
+        </div>
+    </label>
+</macro>
+
+<!-- Radio Group -->
+<macro name="radio-group">
+    <div class="form-group {{ class }}">
+        {% if label %}
+        <label class="block text-sm text-gray-400 mb-3">{{ label }}</label>
+        {% endif %}
+        
+        <div class="space-y-3">
+            {% for option in options %}
+            <label class="flex items-center gap-3 cursor-pointer group">
+                <input type="radio" 
+                       name="{{ name }}" 
+                       value="{{ option.value }}"
+                       class="w-4 h-4 border-gray-600 bg-transparent checked:bg-cyan-400 focus:ring-cyan-400 transition-colors"
+                       {{ 'checked' if option.value == value }}
+                       {{ 'disabled' if disabled }}
+                       onchange="{{ onchange }}">
+                <div>
+                    <span class="text-sm text-gray-300 group-hover:text-white transition-colors">{{ option.label }}</span>
+                    {% if option.description %}
+                    <p class="text-xs text-gray-500">{{ option.description }}</p>
+                    {% endif %}
+                </div>
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+</macro>
+
+<!-- Toggle Switch -->
+<macro name="toggle-switch">
+    <label class="flex items-center justify-between cursor-pointer {{ class }}">
+        <div>
+            {% if label %}
+            <span class="text-sm text-gray-300">{{ label }}</span>
+            {% endif %}
+            {% if description %}
+            <p class="text-xs text-gray-500 mt-0.5">{{ description }}</p>
+            {% endif %}
+        </div>
+        
+        <div class="relative">
+            <input type="checkbox" 
+                   id="{{ id }}" 
+                   name="{{ name|default(id) }}"
+                   class="sr-only"
+                   {{ 'checked' if checked }}
+                   onchange="{{ onchange }}">
+            <div class="toggle-track w-12 h-6 bg-white/10 rounded-full border border-white/20 transition-colors duration-300 
+                        {{ 'bg-gradient-to-r from-cyan-400 to-purple-600 border-transparent' if checked }}"></div>
+            <div class="toggle-thumb absolute left-1 top-1 w-4 h-4 bg-gray-400 rounded-full transition-transform duration-300
+                        {{ 'translate-x-6 bg-white' if checked }}"></div>
+        </div>
+    </label>
+</macro>
+
+<!-- File Upload -->
+<macro name="file-upload">
+    <div class="form-group {{ class }}">
+        {% if label %}
+        <label class="block text-sm text-gray-400 mb-2">{{ label }}</label>
+        {% endif %}
+        
+        <div class="relative">
+            <input type="file" 
+                   id="{{ id }}" 
+                   name="{{ name|default(id) }}"
+                   class="hidden"
+                   accept="{{ accept }}"
+                   {{ 'multiple' if multiple }}
+                   onchange="handleFileUpload(this)">
+            
+            <label for="{{ id }}" 
+                   class="flex flex-col items-center justify-center p-8 border-2 border-dashed border-white/10 rounded-xl cursor-pointer hover:border-cyan-400/50 transition-all group">
+                <i class="fas fa-cloud-upload-alt text-3xl text-gray-500 group-hover:text-cyan-400 transition-colors mb-3"></i>
+                <p class="text-sm text-gray-400 group-hover:text-white transition-colors">
+                    <span class="text-cyan-400">Click to upload</span> or drag and drop
+                </p>
+                <p class="text-xs text-gray-500 mt-1">{{ accept_label|default('CSV, JSON files') }}</p>
+            </label>
+            
+            <div id="{{ id }}-preview" class="mt-3 hidden">
+                <!-- File preview -->
+            </div>
+        </div>
+    </div>
+</macro>
+
+
+
+<style>
+.toggle-track {
+    transition: all 0.3s ease;
+}
+
+input:checked ~ .toggle-track {
+    background: linear-gradient(135deg, #00f0ff, #7c3aed);
+    border-color: transparent;
+}
+
+.toggle-thumb {
+    transition: transform 0.3s ease;
+}
+</style>

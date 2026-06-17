@@ -1,0 +1,1429 @@
+{% extends 'dashboard_base.html' %}
+{% block title %}SICRSense | Live Monitoring Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Glass Morphism */
+    
+    
+    
+    
+    /* Neumorphism Elements */
+    .neo-element {
+      background: linear-gradient(145deg, #1a1a2e, #0d0d1a);
+      box-shadow: 8px 8px 16px #0a0a14, -8px -8px 16px #1e1e32;
+      border-radius: 16px;
+      transition: all 0.3s ease;
+    }
+    
+    .neo-element:hover {
+      box-shadow: 4px 4px 8px #0a0a14, -4px -4px 8px #1e1e32;
+    }
+    
+    /* Gradient Text */
+    .text-gradient {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    /* Animated Border */
+    .animated-border {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .animated-border::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      animation: border-slide 3s linear infinite;
+    }
+    
+    @keyframes border-slide {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+    
+    /* Pulse Animation */
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(0, 240, 255, 0.2); }
+      50% { box-shadow: 0 0 40px rgba(0, 240, 255, 0.4); }
+    }
+    
+    .pulse-glow {
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+    
+    /* Live Indicator */
+    @keyframes live-pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.5); opacity: 0.5; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    
+    .live-indicator {
+      width: 12px;
+      height: 12px;
+      background: var(--success);
+      border-radius: 50%;
+      animation: live-pulse 2s ease-in-out infinite;
+    }
+    
+    /* Metric Counter */
+    @keyframes count-up {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .metric-value {
+      animation: count-up 0.6s ease-out;
+    }
+    
+    /* Chart Container */
+    .chart-container {
+      position: relative;
+      width: 100%;
+      height: 400px;
+    }
+    
+    /* Gauge Chart */
+    .gauge-container {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      margin: 0 auto;
+    }
+    
+    /* Status Badge */
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .status-healthy {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    
+    .status-warning {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--warning);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    
+    .status-critical {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(var(--accent), var(--accent2));
+      border-radius: 4px;
+    }
+    
+    /* Tooltip */
+    .custom-tooltip {
+      position: absolute;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 12px 16px;
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--glass-border);
+      transition: all 0.3s ease;
+    }
+    
+    .nav-item {
+      padding: 12px 20px;
+      margin: 4px 12px;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-secondary);
+    }
+    
+    .nav-item:hover {
+      background: rgba(0, 240, 255, 0.1);
+      color: var(--accent);
+    }
+    
+    .nav-item.active {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(124, 58, 237, 0.2));
+      color: var(--accent);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+    }
+    
+    /* Data Table */
+    .data-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+    
+    .data-table th {
+      background: var(--bg-tertiary);
+      padding: 16px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-bottom: 1px solid var(--glass-border);
+    }
+    
+    .data-table td {
+      padding: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .data-table tr:hover {
+      background: rgba(0, 240, 255, 0.05);
+    }
+    
+    /* Heat Map */
+    .heatmap-cell {
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .heatmap-cell:hover {
+      filter: brightness(1.2);
+      transform: scale(1.05);
+    }
+    
+    /* Skeleton Loading */
+    @keyframes shimmer {
+      0% { background-position: -1000px 0; }
+      100% { background-position: 1000px 0; }
+    }
+    
+    .skeleton {
+      background: linear-gradient(90deg, var(--bg-tertiary) 0%, #2a2a3e 50%, var(--bg-tertiary) 100%);
+      background-size: 1000px 100%;
+      animation: shimmer 2s infinite;
+      border-radius: 8px;
+    }
+    
+    /* Toggle Switch */
+    .toggle-switch {
+      position: relative;
+      width: 50px;
+      height: 26px;
+    }
+    
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--bg-tertiary);
+      transition: 0.3s;
+      border-radius: 34px;
+      border: 1px solid var(--glass-border);
+    }
+    
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 2px;
+      bottom: 2px;
+      background: var(--text-secondary);
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+    
+    input:checked + .toggle-slider {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+    }
+    
+    input:checked + .toggle-slider:before {
+      transform: translateX(24px);
+      background: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="sticky top-0 z-40 glass-card rounded-none border-l-0 border-r-0 border-t-0 px-8 py-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-2xl font-bold font-['Space_Grotesk']">Live System Monitoring</h2>
+            <p class="text-sm text-gray-500 mt-1">Real-time metrics and analytics</p>
+          </div>
+          
+          <div class="flex items-center gap-4">
+            <!-- Auto-refresh Toggle -->
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-gray-400">Auto-refresh</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="autoRefresh" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            
+            <!-- Time Range Selector -->
+            <select id="timeRange" class="neo-element px-4 py-2 rounded-xl text-sm text-gray-300 border border-gray-700 bg-transparent">
+              <option value="5m">Last 5 minutes</option>
+              <option value="15m">Last 15 minutes</option>
+              <option value="1h">Last 1 hour</option>
+              <option value="6h">Last 6 hours</option>
+              <option value="24h" selected>Last 24 hours</option>
+              <option value="7d">Last 7 days</option>
+            </select>
+            
+            <!-- Refresh Button -->
+            <button onclick="refreshData()" class="neo-element p-3 rounded-xl hover:border-cyan-400 transition-all">
+              <i class="fas fa-sync-alt text-gray-400 hover:text-cyan-400"></i>
+            </button>
+          </div>
+        </div>
+      </header>
+<!-- ==================== SECTION: OVERVIEW ==================== -->
+        <section id="section-overview" class="space-y-8">
+          
+          <!-- Key Metrics Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Total Predictions -->
+            <div class="glass-card p-6 animated-border">
+              <div class="flex items-start justify-between mb-4">
+                <div>
+                  <p class="text-sm text-gray-400 mb-1">Total Predictions</p>
+                  <h3 class="text-3xl font-bold metric-value" id="totalPredictions">--</h3>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-cyan-400/10 flex items-center justify-center">
+                  <i class="fas fa-chart-bar text-cyan-400 text-xl"></i>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-green-400 text-sm" id="predictionGrowth">
+                  <i class="fas fa-arrow-up"></i> 12.5%
+                </span>
+                <span class="text-gray-500 text-sm">vs last period</span>
+              </div>
+              <!-- Mini sparkline -->
+              <canvas id="predictionsSparkline" class="mt-4" height="60"></canvas>
+            </div>
+            
+            <!-- Active WebSockets -->
+            <div class="glass-card p-6 animated-border">
+              <div class="flex items-start justify-between mb-4">
+                <div>
+                  <p class="text-sm text-gray-400 mb-1">Active Connections</p>
+                  <h3 class="text-3xl font-bold metric-value" id="activeConnections">--</h3>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-green-400/10 flex items-center justify-center">
+                  <i class="fas fa-plug text-green-400 text-xl"></i>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="live-indicator"></span>
+                <span class="text-green-400 text-sm">Live</span>
+              </div>
+              <canvas id="connectionsSparkline" class="mt-4" height="60"></canvas>
+            </div>
+            
+            <!-- Average Latency -->
+            <div class="glass-card p-6 animated-border">
+              <div class="flex items-start justify-between mb-4">
+                <div>
+                  <p class="text-sm text-gray-400 mb-1">Avg Latency</p>
+                  <h3 class="text-3xl font-bold metric-value" id="avgLatency">--</h3>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-purple-400/10 flex items-center justify-center">
+                  <i class="fas fa-bolt text-purple-400 text-xl"></i>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-green-400 text-sm" id="latencyTrend">
+                  <i class="fas fa-arrow-down"></i> 8.3%
+                </span>
+                <span class="text-gray-500 text-sm">improvement</span>
+              </div>
+              <canvas id="latencySparkline" class="mt-4" height="60"></canvas>
+            </div>
+            
+            <!-- Model Accuracy -->
+            <div class="glass-card p-6 animated-border">
+              <div class="flex items-start justify-between mb-4">
+                <div>
+                  <p class="text-sm text-gray-400 mb-1">Model Accuracy</p>
+                  <h3 class="text-3xl font-bold metric-value" id="modelAccuracy">--</h3>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-yellow-400/10 flex items-center justify-center">
+                  <i class="fas fa-bullseye text-yellow-400 text-xl"></i>
+                </div>
+              </div>
+              <!-- Gauge Chart -->
+              <div class="gauge-container mx-auto" id="accuracyGauge"></div>
+            </div>
+          </div>
+          
+          <!-- Main Charts Row -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Real-time Prediction Rate -->
+            <div class="glass-card p-6">
+              <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold font-['Space_Grotesk']">
+                  <i class="fas fa-wave-square text-cyan-400 mr-2"></i>
+                  Prediction Rate (Real-time)
+                </h3>
+                <span class="status-badge status-healthy">Live</span>
+              </div>
+              <div class="chart-container">
+                <canvas id="predictionRateChart"></canvas>
+              </div>
+            </div>
+            
+            <!-- Latency Distribution -->
+            <div class="glass-card p-6">
+              <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold font-['Space_Grotesk']">
+                  <i class="fas fa-clock text-purple-400 mr-2"></i>
+                  Latency Distribution
+                </h3>
+                <div class="flex gap-2">
+                  <button class="px-3 py-1 rounded-lg text-xs bg-cyan-400/20 text-cyan-400">1H</button>
+                  <button class="px-3 py-1 rounded-lg text-xs bg-gray-700 text-gray-400">24H</button>
+                  <button class="px-3 py-1 rounded-lg text-xs bg-gray-700 text-gray-400">7D</button>
+                </div>
+              </div>
+              <div class="chart-container">
+                <canvas id="latencyDistributionChart"></canvas>
+              </div>
+            </div>
+          </div>
+          
+          <!-- WebSocket Activity Heat Map -->
+          <div class="glass-card p-6">
+            <h3 class="text-lg font-bold font-['Space_Grotesk'] mb-6">
+              <i class="fas fa-fire text-orange-400 mr-2"></i>
+              WebSocket Activity Heat Map
+            </h3>
+            <div id="wsHeatmap" class="overflow-x-auto"></div>
+          </div>
+        </section>
+        
+        <!-- ==================== SECTION: PERFORMANCE ==================== -->
+        <section id="section-performance" class="hidden space-y-8">
+          <div class="glass-card p-6">
+            <h3 class="text-lg font-bold font-['Space_Grotesk'] mb-6">
+              <i class="fas fa-tachometer-alt text-cyan-400 mr-2"></i>
+              Model Performance Metrics
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div class="neo-element p-6 text-center">
+                <p class="text-gray-400 text-sm mb-2">AUC-ROC Score</p>
+                <p class="text-3xl font-bold text-gradient" id="aucScore">0.94</p>
+              </div>
+              <div class="neo-element p-6 text-center">
+                <p class="text-gray-400 text-sm mb-2">F1 Score</p>
+                <p class="text-3xl font-bold text-gradient" id="f1Score">0.89</p>
+              </div>
+              <div class="neo-element p-6 text-center">
+                <p class="text-gray-400 text-sm mb-2">Precision</p>
+                <p class="text-3xl font-bold text-gradient" id="precision">0.92</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="rocCurve"></canvas>
+            </div>
+          </div>
+          
+          <!-- Confusion Matrix -->
+          <div class="glass-card p-6">
+            <h3 class="text-lg font-bold font-['Space_Grotesk'] mb-6">
+              <i class="fas fa-th text-purple-400 mr-2"></i>
+              Confusion Matrix
+            </h3>
+            <div id="confusionMatrix" class="max-w-md mx-auto"></div>
+          </div>
+        </section>
+        
+        <!-- ==================== SECTION: PREDICTIONS ==================== -->
+        <section id="section-predictions" class="hidden space-y-8">
+          <div class="glass-card p-6">
+            <h3 class="text-lg font-bold font-['Space_Grotesk'] mb-6">
+              <i class="fas fa-brain text-cyan-400 mr-2"></i>
+              Recent Predictions
+            </h3>
+            
+            <!-- Filters -->
+            <div class="flex gap-4 mb-6 flex-wrap">
+              <select class="neo-element px-4 py-2 rounded-xl text-sm">
+                <option>All Risk Tiers</option>
+                <option>Very High</option>
+                <option>High</option>
+                <option>Medium</option>
+                <option>Low</option>
+                <option>Very Low</option>
+              </select>
+              <input type="text" placeholder="Search Loan ID..." class="neo-element px-4 py-2 rounded-xl text-sm flex-1">
+              <button class="gradient-btn px-6 py-2 rounded-xl text-sm">Filter</button>
+            </div>
+            
+            <!-- Predictions Table -->
+            <div class="overflow-x-auto">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Loan ID</th>
+                    <th>Risk Tier</th>
+                    <th>Probability</th>
+                    <th>Migration</th>
+                    <th>Latency</th>
+                    <th>Timestamp</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="predictionsTableBody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+        
+        <!-- ==================== SECTION: RISK DISTRIBUTION ==================== -->
+        <section id="section-risk" class="hidden space-y-8">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Risk Tier Distribution -->
+            <div class="glass-card p-6">
+              <h3 class="text-lg font-bold font-['Space_Grotesk'] mb-6">
+                <i class="fas fa-chart-pie text-cyan-400 mr-2"></i>
+                Risk Tier Distribution
+              </h3>
+              <div class="chart-container">
+                <canvas id="riskDistributionDoughnut"></canvas>
+              </div>
+            </div>
+            
+            <!-- Migration Analysis -->
+            <div class="glass-card p-6">
+              <h3 class="text-lg font-bold font-['Space_Grotesk'] mb-6">
+                <i class="fas fa-arrow-right-arrow-left text-purple-400 mr-2"></i>
+                Migration Analysis
+              </h3>
+              <div class="chart-container">
+                <canvas id="migrationAnalysis"></canvas>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Sankey Diagram for Credit Migration -->
+          <div class="glass-card p-6">
+            <h3 class="text-lg font-bold font-['Space_Grotesk'] mb-6">
+              <i class="fas fa-diagram-project text-green-400 mr-2"></i>
+              Credit Migration Flow
+            </h3>
+            <div id="sankeyDiagram"></div>
+          </div>
+        </section>
+        
+        <!-- ==================== SECTION: RESOURCES ==================== -->
+        <section id="section-resources" class="hidden space-y-8">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="glass-card p-6">
+              <h4 class="text-sm text-gray-400 mb-4">CPU Usage</h4>
+              <div class="chart-container" style="height: 200px;">
+                <canvas id="cpuGauge"></canvas>
+              </div>
+              <p class="text-center text-2xl font-bold mt-2" id="cpuValue">45%</p>
+            </div>
+            
+            <div class="glass-card p-6">
+              <h4 class="text-sm text-gray-400 mb-4">Memory Usage</h4>
+              <div class="chart-container" style="height: 200px;">
+                <canvas id="memoryGauge"></canvas>
+              </div>
+              <p class="text-center text-2xl font-bold mt-2" id="memoryValue">62%</p>
+            </div>
+            
+            <div class="glass-card p-6">
+              <h4 class="text-sm text-gray-400 mb-4">Disk I/O</h4>
+              <div class="chart-container" style="height: 200px;">
+                <canvas id="diskGauge"></canvas>
+              </div>
+              <p class="text-center text-2xl font-bold mt-2" id="diskValue">28%</p>
+            </div>
+          </div>
+          
+          <!-- Resource Timeline -->
+          <div class="glass-card p-6">
+            <h3 class="text-lg font-bold font-['Space_Grotesk'] mb-6">
+              <i class="fas fa-chart-line text-cyan-400 mr-2"></i>
+              Resource Usage Timeline
+            </h3>
+            <div class="chart-container">
+              <canvas id="resourceTimeline"></canvas>
+            </div>
+          </div>
+        </section>
+        
+        <!-- ==================== SECTION: AUDIT LOGS ==================== -->
+        <section id="section-logs" class="hidden space-y-8">
+          <div class="glass-card p-6">
+            <h3 class="text-lg font-bold font-['Space_Grotesk'] mb-6">
+              <i class="fas fa-scroll text-cyan-400 mr-2"></i>
+              Audit Trail
+            </h3>
+            
+            <div class="space-y-4" id="auditLogs">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </section>
+        
+        <!-- ==================== SECTION: ALERTS ==================== -->
+        <section id="section-alerts" class="hidden space-y-8">
+          <div class="glass-card p-6">
+            <h3 class="text-lg font-bold font-['Space_Grotesk'] mb-6">
+              <i class="fas fa-bell text-red-400 mr-2"></i>
+              Active Alerts
+            </h3>
+            
+            <div class="space-y-4" id="activeAlerts">
+              <div class="neo-element p-4 border-l-4 border-red-400">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="font-semibold">High Latency Detected</p>
+                    <p class="text-sm text-gray-400">Average latency exceeded 500ms threshold</p>
+                  </div>
+                  <span class="text-sm text-gray-500">2 min ago</span>
+                </div>
+              </div>
+              
+              <div class="neo-element p-4 border-l-4 border-yellow-400">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="font-semibold">Model Accuracy Degradation</p>
+                    <p class="text-sm text-gray-400">F1 score dropped below 0.85</p>
+                  </div>
+                  <span class="text-sm text-gray-500">15 min ago</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // ===== GLOBAL STATE =====
+    let currentSection = 'overview';
+    let autoRefreshInterval;
+    const API_BASE = '/api/v1/monitoring';
+    const DEFAULT_TIME_RANGE = '24h';
+    
+    // ===== INITIALIZATION =====
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeCharts();
+      setupWebSocket();
+      setupNavigation();
+      setupControls();
+      startAutoRefresh();
+      fetchInitialData();
+    });
+    
+    // ===== NAVIGATION =====
+    function setupNavigation() {
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.preventDefault();
+          const section = item.dataset.section;
+          if (section) {
+            switchSection(section);
+          }
+        });
+      });
+    }
+    
+    function switchSection(section) {
+      // Hide all sections
+      document.querySelectorAll('[id^="section-"]').forEach(s => s.classList.add('hidden'));
+      
+      // Show selected section
+      const targetSection = document.getElementById(`section-${section}`);
+      if (targetSection) {
+        targetSection.classList.remove('hidden');
+        
+        // Animate section entrance
+        gsap.from(targetSection.children, {
+          opacity: 0,
+          y: 30,
+          duration: 0.6,
+          stagger: 0.1,
+          ease: 'power2.out'
+        });
+      }
+      
+      // Update active nav item
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      document.querySelector(`[data-section="${section}"]`)?.classList.add('active');
+      
+      currentSection = section;
+      fetchSectionData(section);
+    }
+    
+    // ===== DATA FETCHING =====
+    async function fetchInitialData() {
+      try {
+        const token = localStorage.getItem('access_token');
+        const timeRange = document.getElementById('timeRange')?.value || DEFAULT_TIME_RANGE;
+        const response = await fetch(`${API_BASE}/overview?time_range=${timeRange}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          updateOverviewMetrics(data);
+          updatePredictionRateChart(data.prediction_rates);
+          updateLatencyDistribution(data.latency_distribution);
+        } else {
+          console.warn('Monitor overview request failed:', response.status, await response.text());
+        }
+      } catch (error) {
+        console.error('Failed to fetch monitoring data:', error);
+      }
+    }
+    
+    async function fetchSectionData(section) {
+      try {
+        const token = localStorage.getItem('access_token');
+        const timeRange = document.getElementById('timeRange')?.value || DEFAULT_TIME_RANGE;
+        const response = await fetch(`${API_BASE}/${section}?time_range=${timeRange}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          switch(section) {
+            case 'performance':
+              updatePerformanceCharts(data);
+              break;
+            case 'predictions':
+              updatePredictionsTable(data);
+              break;
+            case 'risk':
+              updateRiskCharts(data);
+              break;
+            case 'resources':
+              updateResourceGauges(data);
+              break;
+            case 'logs':
+              updateAuditLogs(data);
+              break;
+            default:
+              console.warn(`No handler for section: ${section}`);
+          }
+        } else {
+          console.warn(`${section} request failed:`, response.status, await response.text());
+        }
+      } catch (error) {
+        console.error(`Failed to fetch ${section} data:`, error);
+      }
+    }
+    
+    async function refreshData() {
+      await fetchInitialData();
+      if (currentSection !== 'overview') {
+        await fetchSectionData(currentSection);
+      }
+      showRefreshIndicator();
+    }
+    
+    // ===== WEBSOCKET CONNECTION =====
+    let ws;
+    function setupWebSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const token = localStorage.getItem('access_token');
+      const wsUrl = `${protocol}//${window.location.host}/ws${token ? `?token=${token}` : ''}`;
+      
+      ws = new WebSocket(wsUrl);
+      
+      ws.onopen = () => {
+        console.log('WebSocket connected for monitoring');
+        ws.send(JSON.stringify({ type: 'subscribe_metrics' }));
+        ws.send(JSON.stringify({ type: 'request_metrics' }));
+      };
+      
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        
+        if (message.type === 'metrics_update' || message.type === 'metrics_snapshot') {
+          updateRealTimeMetrics(message.data || message);
+        } else if (message.type === 'prediction_update') {
+          addRealtimePrediction(message.data || message);
+        }
+      };
+      
+      ws.onerror = (error) => {
+        console.warn('WebSocket error:', error);
+      };
+      
+      ws.onclose = () => {
+        console.log('WebSocket disconnected, reconnecting...');
+        setTimeout(setupWebSocket, 3000);
+      };
+    }
+    
+    // ===== REAL-TIME UPDATES =====
+    function updateRealTimeMetrics(data) {
+      if (!data) return;
+
+      // Use available live metrics from websocket snapshots or periodic updates
+      const totalPredictions = data.total_predictions ?? data.total_connections ?? 0;
+      const activeConnections = data.active_connections ?? data.active_users ?? data.active_users_count ?? 0;
+      const avgLatency = data.avg_latency_ms ?? data.avg_latency ?? data.system_metrics?.cpu?.percent ?? 0;
+
+      animateValue('totalPredictions', totalPredictions);
+      animateValue('activeConnections', activeConnections);
+      animateValue('avgLatency', `${Math.round(avgLatency)}ms`);
+
+      if (window.predictionRateChart && Array.isArray(data.prediction_rate)) {
+        predictionRateChart.data.labels.push(new Date().toLocaleTimeString());
+        predictionRateChart.data.datasets[0].data.push(data.prediction_rate[data.prediction_rate.length - 1]?.count ?? 0);
+
+        if (predictionRateChart.data.labels.length > 20) {
+          predictionRateChart.data.labels.shift();
+          predictionRateChart.data.datasets[0].data.shift();
+        }
+
+        predictionRateChart.update('none');
+      }
+    }
+    
+    function addRealtimePrediction(prediction) {
+      const tbody = document.getElementById('predictionsTableBody');
+      if (!tbody || !prediction) return;
+      
+      const row = document.createElement('tr');
+      const loanId = prediction.loan_id || prediction.input?.loan_id || '—';
+      const riskTier = prediction.risk_tier || prediction.output?.risk_tier || 'Unknown';
+      const migrationProbability = prediction.migration_probability ?? prediction.output?.migration_probability ?? 0;
+      const predictedMigration = prediction.predicted_migration ?? prediction.output?.predicted_migration;
+      const latency = prediction.processing_time_ms ?? prediction.latency ?? '--';
+      const timestampValue = prediction.timestamp ? new Date(prediction.timestamp).toLocaleString() : '--';
+      const riskColor = getRiskColor(riskTier);
+      
+      row.innerHTML = `
+        <td class="font-mono text-sm">${loanId}</td>
+        <td><span class="px-3 py-1 rounded-full text-xs" style="background: ${riskColor}20; color: ${riskColor}; border: 1px solid ${riskColor}40">${riskTier}</span></td>
+        <td class="font-bold">${(migrationProbability * 100).toFixed(1)}%</td>
+        <td>${predictedMigration ? 'Stage 2' : 'Stage 1'}</td>
+        <td class="text-gray-400">${latency}ms</td>
+        <td class="text-gray-500 text-sm">${timestampValue}</td>
+        <td><button class="text-cyan-400 hover:underline text-sm">Details</button></td>
+      `;
+      
+      tbody.insertBefore(row, tbody.firstChild);
+      
+      while (tbody.children.length > 50) {
+        tbody.removeChild(tbody.lastChild);
+      }
+      
+      gsap.from(row, {
+        backgroundColor: 'rgba(0, 240, 255, 0.2)',
+        duration: 1,
+        ease: 'power2.out'
+      });
+    }
+    
+    // ===== CHART INITIALIZATION =====
+    function initializeCharts() {
+      // Prediction Rate Chart
+      const prCtx = document.getElementById('predictionRateChart');
+      window.predictionRateChart = new Chart(prCtx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: 'Predictions/min',
+            data: [],
+            borderColor: '#00f0ff',
+            backgroundColor: 'rgba(0, 240, 255, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 0,
+            pointHitRadius: 10
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: { 
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              ticks: { color: '#a0a0b0' }
+            },
+            y: {
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              ticks: { color: '#a0a0b0' },
+              beginAtZero: true
+            }
+          },
+          animation: {
+            duration: 750,
+            easing: 'easeInOutQuart'
+          }
+        }
+      });
+      
+      // Latency Distribution Chart
+      const ldCtx = document.getElementById('latencyDistributionChart');
+      window.latencyChart = new Chart(ldCtx, {
+        type: 'bar',
+        data: {
+          labels: ['<50ms', '50-100ms', '100-250ms', '250-500ms', '>500ms'],
+          datasets: [{
+            label: 'Requests',
+            data: [],
+            backgroundColor: [
+              'rgba(16, 185, 129, 0.6)',
+              'rgba(0, 240, 255, 0.6)',
+              'rgba(245, 158, 11, 0.6)',
+              'rgba(249, 115, 22, 0.6)',
+              'rgba(239, 68, 68, 0.6)'
+            ],
+            borderColor: [
+              '#10b981', '#00f0ff', '#f59e0b', '#f97316', '#ef4444'
+            ],
+            borderWidth: 1,
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              ticks: { color: '#a0a0b0' }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { color: '#a0a0b0' }
+            }
+          },
+          animation: {
+            duration: 1000,
+            easing: 'easeOutBounce'
+          }
+        }
+      });
+      
+      // Risk Distribution Doughnut
+      const rdCtx = document.getElementById('riskDistributionDoughnut');
+      window.riskChart = new Chart(rdCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Very Low', 'Low', 'Medium', 'High', 'Very High'],
+          datasets: [{
+            data: [30, 25, 20, 15, 10],
+            backgroundColor: [
+              '#10b981', '#34d399', '#fbbf24', '#f97316', '#ef4444'
+            ],
+            borderWidth: 0,
+            hoverBorderWidth: 3,
+            hoverBorderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#a0a0b0', padding: 20 }
+            }
+          },
+          animation: {
+            animateScale: true,
+            animateRotate: true,
+            duration: 2000
+          }
+        }
+      });
+      
+      // ROC Curve
+      const rocCtx = document.getElementById('rocCurve');
+      window.rocChart = new Chart(rocCtx, {
+        type: 'line',
+        data: {
+          datasets: [{
+            label: 'ROC Curve',
+            data: generateROCData(),
+            borderColor: '#00f0ff',
+            backgroundColor: 'rgba(0, 240, 255, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            pointRadius: 0
+          }, {
+            label: 'Random',
+            data: [{x: 0, y: 0}, {x: 1, y: 1}],
+            borderColor: '#a0a0b0',
+            borderDash: [5, 5],
+            borderWidth: 1,
+            pointRadius: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { 
+              title: { display: true, text: 'False Positive Rate', color: '#a0a0b0' },
+              grid: { color: 'rgba(255,255,255,0.05)' }
+            },
+            y: {
+              title: { display: true, text: 'True Positive Rate', color: '#a0a0b0' },
+              grid: { color: 'rgba(255,255,255,0.05)' }
+            }
+          }
+        }
+      });
+      
+      // Resource Timeline
+      const rtCtx = document.getElementById('resourceTimeline');
+      window.resourceChart = new Chart(rtCtx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: 'CPU',
+              data: [],
+              borderColor: '#00f0ff',
+              tension: 0.4,
+              fill: false
+            },
+            {
+              label: 'Memory',
+              data: [],
+              borderColor: '#7c3aed',
+              tension: 0.4,
+              fill: false
+            },
+            {
+              label: 'Disk',
+              data: [],
+              borderColor: '#10b981',
+              tension: 0.4,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              grid: { color: 'rgba(255,255,255,0.05)' }
+            }
+          }
+        }
+      });
+    }
+    
+    // ===== MONITORING HELPERS =====
+    function updateOverviewMetrics(data) {
+      if (!data) return;
+      animateValue('totalPredictions', data.total_predictions ?? 0);
+      animateValue('activeConnections', data.active_connections ?? data.active_users ?? 0);
+      animateValue('avgLatency', ((data.avg_latency_ms ?? data.latency?.average_ms ?? 0) || 0) + 'ms');
+
+      if (data.prediction_rates) {
+        updatePredictionRateChart(data.prediction_rates);
+      }
+      if (data.latency_distribution) {
+        updateLatencyDistribution(data.latency_distribution);
+      }
+    }
+
+    function updatePredictionRateChart(predictionRates) {
+      if (!window.predictionRateChart || !predictionRates) return;
+      const labels = predictionRates.map(r => {
+        const t = r.timestamp || r._id || r.hour;
+        return t ? new Date(t).toLocaleTimeString() : '';
+      });
+      const values = predictionRates.map(r => r.count ?? r.value ?? 0);
+      window.predictionRateChart.data.labels = labels;
+      window.predictionRateChart.data.datasets[0].data = values;
+      window.predictionRateChart.update();
+    }
+
+    function updateLatencyDistribution(latencyDistribution) {
+      if (!window.latencyChart || !latencyDistribution) return;
+      const rangeMap = {
+        '<50ms': 0,
+        '50-100ms': 1,
+        '100-250ms': 2,
+        '250-500ms': 3,
+        '>500ms': 4
+      };
+      const counts = [0, 0, 0, 0, 0];
+      latencyDistribution.forEach(item => {
+        const range = item.range || item._id || '';
+        const idx = rangeMap[range] ?? (item._id === 0 ? 0 : null);
+        if (idx !== null && idx !== undefined) {
+          counts[idx] = item.count ?? counts[idx];
+        }
+      });
+      window.latencyChart.data.datasets[0].data = counts;
+      window.latencyChart.update();
+    }
+
+    function updatePerformanceCharts(data) {
+      if (!data) return;
+      document.getElementById('aucScore')?.textContent = (data.auc_roc ?? '--').toFixed?.(2) ?? '--';
+      document.getElementById('f1Score')?.textContent = (data.f1_score ?? '--').toFixed?.(2) ?? '--';
+      document.getElementById('precision')?.textContent = (data.precision ?? '--').toFixed?.(2) ?? '--';
+      if (window.rocChart && data.roc_curve) {
+        window.rocChart.data.datasets[0].data = data.roc_curve;
+        window.rocChart.update();
+      }
+    }
+
+    function updatePredictionsTable(data) {
+      const tbody = document.getElementById('predictionsTableBody');
+      if (!tbody || !data) return;
+      tbody.innerHTML = '';
+      const predictions = data.predictions || data.recent_predictions || [];
+      predictions.slice().reverse().forEach(prediction => {
+        const row = document.createElement('tr');
+        const riskColor = getRiskColor(prediction.risk_tier || prediction.output?.risk_tier);
+        row.innerHTML = `
+          <td class="font-mono text-sm">${prediction.loan_id || prediction.input?.loan_id || '—'}</td>
+          <td><span class="px-3 py-1 rounded-full text-xs" style="background: ${riskColor}20; color: ${riskColor}; border: 1px solid ${riskColor}40">${prediction.risk_tier || prediction.output?.risk_tier || 'Unknown'}</span></td>
+          <td class="font-bold">${((prediction.migration_probability ?? prediction.output?.migration_probability ?? 0) * 100).toFixed(1)}%</td>
+          <td>${(prediction.predicted_migration ?? prediction.output?.predicted_migration) ? 'Stage 2' : 'Stage 1'}</td>
+          <td class="text-gray-400">${prediction.processing_time_ms ?? prediction.latency ?? '--'}ms</td>
+          <td class="text-gray-500 text-sm">${prediction.timestamp ? new Date(prediction.timestamp).toLocaleString() : '--'}</td>
+          <td><button class="text-cyan-400 hover:underline text-sm">Details</button></td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function updateRiskCharts(data) {
+      if (!data || !window.riskChart) return;
+      const distribution = data.risk_distribution || [];
+      const order = ['Very Low', 'Low', 'Medium', 'High', 'Very High'];
+      window.riskChart.data.datasets[0].data = order.map(label => {
+        const item = distribution.find(d => d.tier === label || d._id === label);
+        return item ? (item.count ?? item.value ?? 0) : 0;
+      });
+      window.riskChart.update();
+    }
+
+    function updateResourceGauges(data) {
+      if (!data) return;
+      document.getElementById('cpuValue')?.textContent = `${Math.round(data.cpu_percent ?? data.system_metrics?.cpu?.percent ?? 0)}%`;
+      document.getElementById('memoryValue')?.textContent = `${Math.round(data.memory_percent ?? data.system_metrics?.memory?.percent ?? 0)}%`;
+      document.getElementById('diskValue')?.textContent = `${Math.round(data.disk_percent ?? data.system_metrics?.disk?.percent ?? 0)}%`;
+      if (window.resourceChart) {
+        const now = new Date().toLocaleTimeString();
+        const cpu = data.cpu_percent ?? data.system_metrics?.cpu?.percent ?? 0;
+        const memory = data.memory_percent ?? data.system_metrics?.memory?.percent ?? 0;
+        const disk = data.disk_percent ?? data.system_metrics?.disk?.percent ?? 0;
+        window.resourceChart.data.labels.push(now);
+        window.resourceChart.data.datasets[0].data.push(cpu);
+        window.resourceChart.data.datasets[1].data.push(memory);
+        window.resourceChart.data.datasets[2].data.push(disk);
+        if (window.resourceChart.data.labels.length > 20) {
+          window.resourceChart.data.labels.shift();
+          window.resourceChart.data.datasets.forEach(dataset => dataset.data.shift());
+        }
+        window.resourceChart.update('none');
+      }
+    }
+
+    function updateAuditLogs(data) {
+      const container = document.getElementById('auditLogs');
+      if (!container || !data) return;
+      const logs = data.logs || [];
+      container.innerHTML = logs.map(log => `
+        <div class="neo-element p-4 rounded-xl">
+          <div class="flex items-center justify-between mb-2">
+            <p class="font-semibold">${log.event || log.action || 'Audit Event'}</p>
+            <span class="text-xs text-gray-500">${new Date(log.timestamp).toLocaleString()}</span>
+          </div>
+          <p class="text-sm text-gray-400">${log.detail || log.message || JSON.stringify(log)}</p>
+        </div>
+      `).join('');
+    }
+    
+    // ===== HELPER FUNCTIONS =====
+    function setupControls() {
+      const timeRangeSelect = document.getElementById('timeRange');
+      if (timeRangeSelect) {
+        timeRangeSelect.addEventListener('change', () => {
+          refreshData();
+        });
+      }
+    }
+
+    function animateValue(elementId, newValue) {
+      const element = document.getElementById(elementId);
+      if (!element) return;
+      
+      const currentValue = parseFloat(element.textContent) || 0;
+      const duration = 1000;
+      const startTime = performance.now();
+      
+      function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3); // Ease out cubic
+        
+        const targetValue = typeof newValue === 'string' ? parseFloat(newValue) : newValue;
+        const current = currentValue + (targetValue - currentValue) * eased;
+        element.textContent = typeof newValue === 'string' && newValue.includes('ms') 
+          ? `${Math.round(current)}ms` 
+          : Math.round(current).toLocaleString();
+        
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        }
+      }
+      
+      requestAnimationFrame(update);
+    }
+    
+    function getRiskColor(tier) {
+      const colors = {
+        'Very High': '#ef4444',
+        'High': '#f97316',
+        'Medium': '#fbbf24',
+        'Low': '#34d399',
+        'Very Low': '#10b981'
+      };
+      return colors[tier] || '#a0a0b0';
+    }
+    
+    function showRefreshIndicator() {
+      const indicator = document.createElement('div');
+      indicator.className = 'fixed top-4 left-1/2 -translate-x-1/2 bg-cyan-400/20 text-cyan-400 px-4 py-2 rounded-full text-sm z-50';
+      indicator.textContent = '✓ Data refreshed';
+      document.body.appendChild(indicator);
+      
+      gsap.fromTo(indicator, 
+        { opacity: 0, y: -20 },
+        { opacity: 1, y: 0, duration: 0.3 }
+      );
+      
+      setTimeout(() => {
+        gsap.to(indicator, {
+          opacity: 0,
+          y: -20,
+          duration: 0.3,
+          onComplete: () => indicator.remove()
+        });
+      }, 2000);
+    }
+    
+    function startAutoRefresh() {
+      autoRefreshInterval = setInterval(() => {
+        if (document.getElementById('autoRefresh').checked) {
+          refreshData();
+        }
+      }, 5000);
+    }
+    
+    document.getElementById('autoRefresh').addEventListener('change', (e) => {
+      if (e.target.checked) {
+        startAutoRefresh();
+      } else {
+        clearInterval(autoRefreshInterval);
+      }
+    });
+    
+    // ===== SPARKLINES =====
+    function createSparkline(canvasId, data, color) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.map((_, i) => i),
+          datasets: [{
+            data: data,
+            borderColor: color,
+            borderWidth: 2,
+            fill: true,
+            backgroundColor: `${color}20`,
+            pointRadius: 0,
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { display: false },
+            y: { display: false }
+          }
+        }
+      });
+    }
+    
+    // Generate sample sparkline data
+    function generateSparklineData(points = 30, min = 0, max = 100) {
+      return Array.from({ length: points }, () => Math.random() * (max - min) + min);
+    }
+    
+    // Initialize sparklines
+    createSparkline('predictionsSparkline', generateSparklineData(30, 20, 200), '#00f0ff');
+    createSparkline('connectionsSparkline', generateSparklineData(30, 5, 50), '#10b981');
+    createSparkline('latencySparkline', generateSparklineData(30, 20, 80), '#7c3aed');
+    
+    // ===== D3.js VISUALIZATIONS =====
+    function createSankeyDiagram() {
+      const container = document.getElementById('sankeyDiagram');
+      if (!container) return;
+      
+      const width = container.offsetWidth;
+      const height = 400;
+      
+      // Sample data
+      const data = {
+        nodes: [
+          { name: 'Stage 1' },
+          { name: 'Stage 2' },
+          { name: 'Stage 3' },
+          { name: 'Cured' },
+          { name: 'Default' }
+        ],
+        links: [
+          { source: 0, target: 1, value: 150 },
+          { source: 0, target: 4, value: 20 },
+          { source: 1, target: 0, value: 80 },
+          { source: 1, target: 2, value: 40 },
+          { source: 1, target: 4, value: 30 },
+          { source: 2, target: 4, value: 50 },
+          { source: 2, target: 3, value: 20 }
+        ]
+      };
+      
+      // D3 Sankey implementation would go here
+      // For brevity, showing placeholder
+      container.innerHTML = `<div class="text-center text-gray-400 py-8">Sankey Diagram Loading...</div>`;
+    }
+    
+    function createHeatMap() {
+      const container = document.getElementById('wsHeatmap');
+      if (!container) return;
+      
+      const hours = 24;
+      const days = 7;
+      let html = '<div class="grid gap-1" style="grid-template-columns: auto repeat(24, 1fr)">';
+      
+      // Header
+      html += '<div class="text-xs text-gray-500 p-1"></div>';
+      for (let h = 0; h < hours; h++) {
+        html += `<div class="text-xs text-gray-500 p-1 text-center">${h}h</div>`;
+      }
+      
+      // Data rows
+      const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      for (let d = 0; d < days; d++) {
+        html += `<div class="text-xs text-gray-500 p-1">${daysOfWeek[d]}</div>`;
+        for (let h = 0; h < hours; h++) {
+          const intensity = Math.random();
+          const color = intensity > 0.7 
+            ? 'rgba(0, 240, 255, 0.8)' 
+            : intensity > 0.4 
+              ? 'rgba(0, 240, 255, 0.4)' 
+              : 'rgba(0, 240, 255, 0.1)';
+          html += `<div class="heatmap-cell w-full h-8 rounded" style="background: ${color}" title="${daysOfWeek[d]} ${h}:00 - ${Math.round(intensity * 100)} requests"></div>`;
+        }
+      }
+      
+      html += '</div>';
+      container.innerHTML = html;
+    }
+    
+    // Initialize D3 visualizations
+    createSankeyDiagram();
+    createHeatMap();
+    
+    // Generate ROC curve data
+    function generateROCData() {
+      const points = [];
+      for (let i = 0; i <= 100; i++) {
+        const x = i / 100;
+        const y = Math.pow(x, 0.3); // Creates a realistic ROC curve
+        points.push({ x, y });
+      }
+      return points;
+    }
+    
+    // ===== LOGOUT =====
+    function logout() {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      window.location.href = '/login';
+    }
+    
+    // ===== RESPONSIVE HANDLING =====
+    window.addEventListener('resize', () => {
+      if (window.predictionRateChart) predictionRateChart.resize();
+      if (window.latencyChart) latencyChart.resize();
+      if (window.riskChart) riskChart.resize();
+      if (window.rocChart) rocChart.resize();
+    });
+  </script>
+{% endblock %}

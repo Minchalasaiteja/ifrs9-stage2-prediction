@@ -1,0 +1,517 @@
+from fastapi import WebSocket, WebSocketDisconnect
+from typing import List, Dict, Any, Set, Optional
+import json
+import asyncio
+import logging
+from datetime import datetime, timedelta
+from collections import defaultdict
+import time
+import psutil
+import os
+
+logger = logging.getLogger(__name__)
+
+class WebSocketManager:
+    """Enhanced WebSocket Manager with real-time metrics streaming"""
+    
+    def __init__(self):
+        # Connection pools by type
+        self.active_connections: Set[WebSocket] = set()
+        self.prediction_subscribers: Set[WebSocket] = set()
+        self.metrics_subscribers: Set[WebSocket] = set()
+        self.admin_subscribers: Set[WebSocket] = set()
+        
+        # User-specific connections
+        self.user_connections: Dict[str, Set[WebSocket]] = defaultdict(set)
+        
+        # Connection metadata
+        self.connection_metadata: Dict[WebSocket, Dict[str, Any]] = {}
+        
+        # Statistics
+        self.connection_stats: Dict[str, Any] = {
+            "total_connections": 0,
+            "total_disconnections": 0,
+            "active_connections": 0,
+            "messages_sent": 0,
+            "messages_received": 0,
+            "peak_connections": 0,
+            "connection_duration_total": 0
+        }
+        
+        # Real-time metrics cache
+        self.metrics_cache: Dict[str, Any] = {
+            "prediction_rate": [],
+            "latency_data": [],
+            "error_rate": [],
+            "active_users": 0,
+            "system_metrics": {}
+        }
+        
+        # Background tasks
+        self.background_tasks: Set[asyncio.Task] = set()
+        self.metrics_broadcast_task: Optional[asyncio.Task] = None
+        self.system_metrics_task: Optional[asyncio.Task] = None
+    
+    def start_background_tasks(self):
+        """Start background tasks for metrics collection and broadcasting"""
+        self.metrics_broadcast_task = asyncio.create_task(self.broadcast_metrics_loop())
+        self.system_metrics_task = asyncio.create_task(self.collect_system_metrics())
+        
+        self.background_tasks.add(self.metrics_broadcast_task)
+        self.background_tasks.add(self.system_metrics_task)
+    
+    async def connect(self, websocket: WebSocket, user: Optional[Dict] = None):
+        """Accept new WebSocket connection with authentication"""
+        await websocket.accept()
+        
+        # Add to connection pools
+        self.active_connections.add(websocket)
+        
+        # Store metadata
+        self.connection_metadata[websocket] = {
+            "connected_at": datetime.utcnow(),
+            "user": user,
+            "user_id": str(user["_id"]) if user else None,
+            "subscriptions": set(),
+            "messages_sent": 0,
+            "messages_received": 0,
+            "last_activity": datetime.utcnow()
+        }
+        
+        # Add to user connections if authenticated
+        if user:
+            user_id = str(user["_id"])
+            self.user_connections[user_id].add(websocket)
+            
+            # Log connection
+            logger.info(f"User {user.get('username', 'Unknown')} connected via WebSocket")
+        
+        # Update statistics
+        self.connection_stats["total_connections"] += 1
+        self.connection_stats["active_connections"] = len(self.active_connections)
+        self.connection_stats["peak_connections"] = max(
+            self.connection_stats["peak_connections"],
+            self.connection_stats["active_connections"]
+        )
+        
+        # Send connection confirmation with system status
+        await self.send_personal_message({
+            "type": "connection_established",
+            "timestamp": datetime.utcnow().isoformat(),
+            "message": "Connected to SICRSense real-time feed",
+            "connection_id": id(websocket),
+            "system_status": self.get_system_status(),
+            "features": {
+                "prediction_streaming": True,
+                "metrics_streaming": True,
+                "admin_monitoring": user and user.get("role") == "admin",
+                "max_reconnect_timeout": 30
+            }
+        }, websocket)
+    
+    def disconnect(self, websocket: WebSocket):
+        """Remove WebSocket connection and clean up"""
+        # Remove from all pools
+        self.active_connections.discard(websocket)
+        self.prediction_subscribers.discard(websocket)
+        self.metrics_subscribers.discard(websocket)
+        self.admin_subscribers.discard(websocket)
+        
+        # Remove from user connections
+        metadata = self.connection_metadata.get(websocket, {})
+        user_id = metadata.get("user_id")
+        if user_id and user_id in self.user_connections:
+            self.user_connections[user_id].discard(websocket)
+            if not self.user_connections[user_id]:
+                del self.user_connections[user_id]
+        
+        # Calculate connection duration
+        if "connected_at" in metadata:
+            duration = (datetime.utcnow() - metadata["connected_at"]).total_seconds()
+            self.connection_stats["connection_duration_total"] += duration
+        
+        # Update statistics
+        self.connection_stats["total_disconnections"] += 1
+        self.connection_stats["active_connections"] = len(self.active_connections)
+        
+        # Clean up metadata
+        if websocket in self.connection_metadata:
+            del self.connection_metadata[websocket]
+        
+        logger.info(f"WebSocket disconnected. Active: {self.connection_stats['active_connections']}")
+    
+    async def handle_message(self, websocket: WebSocket, message: Dict[str, Any]):
+        """Handle incoming WebSocket messages"""
+        try:
+            # Update activity timestamp
+            if websocket in self.connection_metadata:
+                self.connection_metadata[websocket]["last_activity"] = datetime.utcnow()
+                self.connection_metadata[websocket]["messages_received"] += 1
+            
+            self.connection_stats["messages_received"] += 1
+            
+            message_type = message.get("type")
+            
+            if message_type == "subscribe_predictions":
+                await self.subscribe_to_predictions(websocket)
+                
+            elif message_type == "subscribe_metrics":
+                await self.subscribe_to_metrics(websocket)
+                
+            elif message_type == "subscribe_admin":
+                await self.subscribe_to_admin(websocket)
+                
+            elif message_type == "unsubscribe":
+                await self.unsubscribe_all(websocket)
+                
+            elif message_type == "ping":
+                await self.send_personal_message({
+                    "type": "pong",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "server_time": time.time(),
+                    "active_connections": self.connection_stats["active_connections"]
+                }, websocket)
+                
+            elif message_type == "request_metrics":
+                await self.send_personal_message({
+                    "type": "metrics_snapshot",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "data": self.metrics_cache
+                }, websocket)
+                
+            elif message_type == "request_system_info":
+                await self.send_personal_message({
+                    "type": "system_info",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "data": self.get_system_status()
+                }, websocket)
+                
+            else:
+                await self.send_personal_message({
+                    "type": "error",
+                    "message": f"Unknown message type: {message_type}"
+                }, websocket)
+                
+        except Exception as e:
+            logger.error(f"Error handling WebSocket message: {e}")
+    
+    async def subscribe_to_predictions(self, websocket: WebSocket):
+        """Subscribe to real-time prediction updates"""
+        self.prediction_subscribers.add(websocket)
+        
+        if websocket in self.connection_metadata:
+            self.connection_metadata[websocket]["subscriptions"].add("predictions")
+        
+        await self.send_personal_message({
+            "type": "subscription_confirmed",
+            "channel": "predictions",
+            "message": "Subscribed to real-time prediction updates"
+        }, websocket)
+        
+        logger.info(f"Client subscribed to predictions (Total: {len(self.prediction_subscribers)})")
+    
+    async def subscribe_to_metrics(self, websocket: WebSocket):
+        """Subscribe to real-time metrics updates"""
+        self.metrics_subscribers.add(websocket)
+        
+        if websocket in self.connection_metadata:
+            self.connection_metadata[websocket]["subscriptions"].add("metrics")
+        
+        # Send current metrics snapshot
+        await self.send_personal_message({
+            "type": "metrics_snapshot",
+            "timestamp": datetime.utcnow().isoformat(),
+            "data": self.metrics_cache
+        }, websocket)
+        
+        await self.send_personal_message({
+            "type": "subscription_confirmed",
+            "channel": "metrics",
+            "message": "Subscribed to real-time metrics updates"
+        }, websocket)
+        
+        logger.info(f"Client subscribed to metrics (Total: {len(self.metrics_subscribers)})")
+    
+    async def subscribe_to_admin(self, websocket: WebSocket):
+        """Subscribe to admin monitoring updates (admin only)"""
+        metadata = self.connection_metadata.get(websocket, {})
+        user = metadata.get("user", {})
+        
+        if not user or user.get("role") != "admin":
+            await self.send_personal_message({
+                "type": "error",
+                "message": "Admin access required"
+            }, websocket)
+            return
+        
+        self.admin_subscribers.add(websocket)
+        
+        if websocket in self.connection_metadata:
+            self.connection_metadata[websocket]["subscriptions"].add("admin")
+        
+        await self.send_personal_message({
+            "type": "subscription_confirmed",
+            "channel": "admin",
+            "message": "Subscribed to admin monitoring updates"
+        }, websocket)
+        
+        logger.info(f"Admin subscribed to monitoring (Total: {len(self.admin_subscribers)})")
+    
+    async def unsubscribe_all(self, websocket: WebSocket):
+        """Unsubscribe from all channels"""
+        self.prediction_subscribers.discard(websocket)
+        self.metrics_subscribers.discard(websocket)
+        self.admin_subscribers.discard(websocket)
+        
+        if websocket in self.connection_metadata:
+            self.connection_metadata[websocket]["subscriptions"].clear()
+        
+        await self.send_personal_message({
+            "type": "unsubscribed",
+            "message": "Unsubscribed from all channels"
+        }, websocket)
+    
+    async def broadcast_prediction(self, prediction_data: Dict[str, Any]):
+        """Broadcast prediction result to subscribed clients"""
+        message = {
+            "type": "prediction_update",
+            "timestamp": datetime.utcnow().isoformat(),
+            "data": prediction_data
+        }
+        
+        await self.broadcast_to_subscribers(message, self.prediction_subscribers)
+        
+        # Update metrics cache
+        self.metrics_cache["prediction_rate"].append({
+            "timestamp": datetime.utcnow().isoformat(),
+            "risk_tier": prediction_data.get("risk_tier"),
+            "probability": prediction_data.get("migration_probability"),
+            "latency": prediction_data.get("processing_time_ms")
+        })
+        
+        # Keep only last 100 predictions in cache
+        if len(self.metrics_cache["prediction_rate"]) > 100:
+            self.metrics_cache["prediction_rate"] = self.metrics_cache["prediction_rate"][-100:]
+    
+    async def broadcast_metrics_update(self, metrics_data: Dict[str, Any]):
+        """Broadcast metrics update to subscribed clients"""
+        message = {
+            "type": "metrics_update",
+            "timestamp": datetime.utcnow().isoformat(),
+            "data": metrics_data
+        }
+        
+        await self.broadcast_to_subscribers(message, self.metrics_subscribers)
+    
+    async def broadcast_admin_update(self, admin_data: Dict[str, Any]):
+        """Broadcast admin monitoring data"""
+        message = {
+            "type": "admin_update",
+            "timestamp": datetime.utcnow().isoformat(),
+            "data": admin_data
+        }
+        
+        await self.broadcast_to_subscribers(message, self.admin_subscribers)
+    
+    async def broadcast_to_subscribers(self, message: Dict[str, Any], subscribers: Set[WebSocket]):
+        """Broadcast message to a specific set of subscribers"""
+        disconnected = set()
+        
+        for websocket in subscribers:
+            try:
+                await websocket.send_json(message)
+                
+                if websocket in self.connection_metadata:
+                    self.connection_metadata[websocket]["messages_sent"] += 1
+                
+                self.connection_stats["messages_sent"] += 1
+                
+            except Exception as e:
+                logger.error(f"Failed to send to subscriber: {e}")
+                disconnected.add(websocket)
+        
+        # Clean up disconnected subscribers
+        for websocket in disconnected:
+            self.disconnect(websocket)
+    
+    async def send_personal_message(self, message: Dict[str, Any], websocket: WebSocket):
+        """Send message to specific client"""
+        try:
+            await websocket.send_json(message)
+            
+            if websocket in self.connection_metadata:
+                self.connection_metadata[websocket]["messages_sent"] += 1
+            
+            self.connection_stats["messages_sent"] += 1
+            
+        except Exception as e:
+            logger.error(f"Failed to send personal message: {e}")
+            self.disconnect(websocket)
+    
+    async def broadcast_metrics_loop(self):
+        """Background task to broadcast metrics periodically"""
+        while True:
+            try:
+                # Prepare metrics update
+                metrics_update = {
+                    "active_connections": self.connection_stats["active_connections"],
+                    "total_connections": self.connection_stats["total_connections"],
+                    "messages_sent": self.connection_stats["messages_sent"],
+                    "prediction_subscribers": len(self.prediction_subscribers),
+                    "metrics_subscribers": len(self.metrics_subscribers),
+                    "admin_subscribers": len(self.admin_subscribers),
+                    "active_users": len(self.user_connections),
+                    "system_metrics": self.metrics_cache.get("system_metrics", {}),
+                    "total_predictions": len(self.metrics_cache.get("prediction_rate", [])),
+                    "avg_latency_ms": round(
+                        sum((item.get("latency") or 0) for item in self.metrics_cache.get("prediction_rate", [])) /
+                        max(1, len(self.metrics_cache.get("prediction_rate", [])))
+                        , 2
+                    ),
+                    "prediction_rate": self.metrics_cache.get("prediction_rate", [])
+                }
+                
+                # Broadcast to metrics subscribers
+                if self.metrics_subscribers:
+                    await self.broadcast_metrics_update(metrics_update)
+                
+                # Broadcast to admin subscribers
+                if self.admin_subscribers:
+                    admin_update = {
+                        **metrics_update,
+                        "user_details": {
+                            user_id: len(connections)
+                            for user_id, connections in self.user_connections.items()
+                        },
+                        "connection_details": [
+                            {
+                                "connection_id": id(ws),
+                                "connected_at": meta.get("connected_at", "").isoformat(),
+                                "user": meta.get("user", {}).get("username", "Anonymous"),
+                                "subscriptions": list(meta.get("subscriptions", [])),
+                                "messages_sent": meta.get("messages_sent", 0)
+                            }
+                            for ws, meta in self.connection_metadata.items()
+                        ]
+                    }
+                    await self.broadcast_admin_update(admin_update)
+                
+                # Clean up old metrics data
+                cutoff_time = datetime.utcnow() - timedelta(hours=1)
+                self.metrics_cache["prediction_rate"] = [
+                    p for p in self.metrics_cache["prediction_rate"]
+                    if datetime.fromisoformat(p["timestamp"]) > cutoff_time
+                ]
+                
+            except Exception as e:
+                logger.error(f"Error in metrics broadcast loop: {e}")
+            
+            await asyncio.sleep(5)  # Broadcast every 5 seconds
+    
+    async def collect_system_metrics(self):
+        """Background task to collect system performance metrics"""
+        while True:
+            try:
+                # Collect system metrics
+                cpu_percent = psutil.cpu_percent(interval=None)
+                memory = psutil.virtual_memory()
+                disk = psutil.disk_usage('/')
+                net_io = psutil.net_io_counters()
+                
+                system_metrics = {
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "cpu": {
+                        "percent": cpu_percent,
+                        "cores": psutil.cpu_count()
+                    },
+                    "memory": {
+                        "total_gb": round(memory.total / (1024**3), 2),
+                        "used_gb": round(memory.used / (1024**3), 2),
+                        "percent": memory.percent
+                    },
+                    "disk": {
+                        "total_gb": round(disk.total / (1024**3), 2),
+                        "used_gb": round(disk.used / (1024**3), 2),
+                        "percent": disk.percent
+                    },
+                    "network": {
+                        "bytes_sent_mb": round(net_io.bytes_sent / (1024**2), 2),
+                        "bytes_recv_mb": round(net_io.bytes_recv / (1024**2), 2)
+                    },
+                    "process": {
+                        "pid": os.getpid(),
+                        "threads": psutil.Process().num_threads(),
+                        "memory_mb": round(psutil.Process().memory_info().rss / (1024**2), 2)
+                    }
+                }
+                
+                self.metrics_cache["system_metrics"] = system_metrics
+                
+                # Calculate error rate (simplified)
+                recent_predictions = self.metrics_cache["prediction_rate"]
+                if recent_predictions:
+                    errors = sum(1 for p in recent_predictions if p.get("error"))
+                    total = len(recent_predictions)
+                    self.metrics_cache["error_rate"] = (errors / total) * 100 if total > 0 else 0
+                
+            except Exception as e:
+                logger.error(f"Error collecting system metrics: {e}")
+            
+            await asyncio.sleep(10)  # Collect every 10 seconds
+    
+    def get_system_status(self) -> Dict[str, Any]:
+        """Get current system status"""
+        return {
+            "status": "healthy" if self.connection_stats["active_connections"] > 0 else "idle",
+            "uptime_seconds": time.time() - psutil.boot_time(),
+            "active_connections": self.connection_stats["active_connections"],
+            "peak_connections": self.connection_stats["peak_connections"],
+            "total_messages_processed": self.connection_stats["messages_sent"] + self.connection_stats["messages_received"],
+            "active_subscriptions": {
+                "predictions": len(self.prediction_subscribers),
+                "metrics": len(self.metrics_subscribers),
+                "admin": len(self.admin_subscribers)
+            },
+            "memory_usage": f"{psutil.Process().memory_percent():.1f}%"
+        }
+    
+    async def cleanup(self):
+        """Clean up resources on shutdown"""
+        # Cancel background tasks
+        for task in self.background_tasks:
+            task.cancel()
+        
+        # Close all connections
+        for websocket in self.active_connections.copy():
+            try:
+                await websocket.close(code=1001, reason="Server shutting down")
+            except:
+                pass
+            self.disconnect(websocket)
+        
+        logger.info("WebSocket manager cleaned up")
+    
+    def get_user_connections(self, user_id: str) -> Set[WebSocket]:
+        """Get all connections for a specific user"""
+        return self.user_connections.get(user_id, set())
+    
+    async def send_to_user(self, user_id: str, message: Dict[str, Any]):
+        """Send message to all connections of a specific user"""
+        user_connections = self.get_user_connections(user_id)
+        for websocket in user_connections:
+            await self.send_personal_message(message, websocket)
+    
+    async def broadcast_system_alert(self, alert_data: Dict[str, Any]):
+        """Broadcast system alert to all connected clients"""
+        message = {
+            "type": "system_alert",
+            "timestamp": datetime.utcnow().isoformat(),
+            "severity": alert_data.get("severity", "info"),
+            "message": alert_data.get("message", ""),
+            "data": alert_data
+        }
+        
+        await self.broadcast_to_subscribers(message, self.active_connections)
+
+# Global WebSocket manager instance
+ws_manager = WebSocketManager()

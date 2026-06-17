@@ -1,0 +1,194 @@
+{% extends 'dashboard_base.html' %}
+
+{% block title %}SICRSense | Settings{% endblock %}
+
+{% block content %}
+<div class="glass-card p-8 mb-8">
+  <h1 class="text-3xl font-bold">Settings</h1>
+  <p class="text-gray-400 mt-2">Manage your account security and preferences.</p>
+</div>
+
+<div class="grid lg:grid-cols-2 gap-6">
+  <!-- Change Password Section -->
+  <div class="glass-card p-6 space-y-4">
+    <h2 class="text-xl font-semibold">Change Password</h2>
+    <p class="text-sm text-gray-400">Update your account password</p>
+    <form id="changePasswordForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">Current Password</label>
+        <input type="password" id="currentPassword" class="neo-input" placeholder="Enter current password" required />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">New Password</label>
+        <input type="password" id="newPassword" class="neo-input" placeholder="Enter new password" required />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">Confirm New Password</label>
+        <input type="password" id="confirmPassword" class="neo-input" placeholder="Confirm new password" required />
+      </div>
+      <button type="submit" class="w-full py-3 rounded-xl bg-cyan-500/15 text-cyan-300 border border-cyan-500/20 hover:border-cyan-400 transition-all font-medium">
+        Update Password
+      </button>
+      <div id="passwordStatus" class="hidden text-sm p-3 rounded-lg"></div>
+    </form>
+  </div>
+
+  <!-- Update Email Section -->
+  <div class="glass-card p-6 space-y-4">
+    <h2 class="text-xl font-semibold">Update Email</h2>
+    <p class="text-sm text-gray-400">Change your email address</p>
+    <form id="updateEmailForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">Current Email</label>
+        <input type="email" id="currentEmail" class="neo-input" readonly />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">New Email</label>
+        <input type="email" id="newEmail" class="neo-input" placeholder="Enter new email address" required />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">Password (for verification)</label>
+        <input type="password" id="emailPassword" class="neo-input" placeholder="Enter your password" required />
+      </div>
+      <button type="submit" class="w-full py-3 rounded-xl bg-purple-500/15 text-purple-300 border border-purple-500/20 hover:border-purple-400 transition-all font-medium">
+        Update Email
+      </button>
+      <div id="emailStatus" class="hidden text-sm p-3 rounded-lg"></div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  async function loadUserEmail() {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('/api/v1/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const user = await response.json();
+        document.getElementById('currentEmail').value = user.email || 'Not set';
+      }
+    } catch (error) {
+      console.error('Failed to load user email:', error);
+    }
+  }
+
+  async function handleChangePassword(e) {
+    e.preventDefault();
+    const form = document.getElementById('changePasswordForm');
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const status = document.getElementById('passwordStatus');
+    const token = localStorage.getItem('access_token');
+
+    if (newPassword !== confirmPassword) {
+      status.textContent = 'Passwords do not match';
+      status.className = 'text-sm p-3 rounded-lg bg-red-500/20 text-red-400';
+      status.classList.remove('hidden');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      status.textContent = 'Password must be at least 8 characters';
+      status.className = 'text-sm p-3 rounded-lg bg-red-500/20 text-red-400';
+      status.classList.remove('hidden');
+      return;
+    }
+
+    status.textContent = 'Updating password...';
+    status.className = 'text-sm p-3 rounded-lg bg-blue-500/20 text-blue-400';
+    status.classList.remove('hidden');
+
+    try {
+      const response = await fetch('/api/v1/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword
+        })
+      });
+
+      if (response.ok) {
+        status.textContent = '✓ Password updated successfully';
+        status.className = 'text-sm p-3 rounded-lg bg-green-500/20 text-green-400';
+        form.reset();
+      } else {
+        const error = await response.json();
+        status.textContent = `Error: ${error.detail || 'Failed to update password'}`;
+        status.className = 'text-sm p-3 rounded-lg bg-red-500/20 text-red-400';
+      }
+    } catch (error) {
+      status.textContent = `Error: ${error.message}`;
+      status.className = 'text-sm p-3 rounded-lg bg-red-500/20 text-red-400';
+      console.error(error);
+    }
+  }
+
+  async function handleUpdateEmail(e) {
+    e.preventDefault();
+    const form = document.getElementById('updateEmailForm');
+    const newEmail = document.getElementById('newEmail').value;
+    const password = document.getElementById('emailPassword').value;
+    const status = document.getElementById('emailStatus');
+    const token = localStorage.getItem('access_token');
+
+    if (!newEmail.includes('@')) {
+      status.textContent = 'Please enter a valid email address';
+      status.className = 'text-sm p-3 rounded-lg bg-red-500/20 text-red-400';
+      status.classList.remove('hidden');
+      return;
+    }
+
+    status.textContent = 'Updating email...';
+    status.className = 'text-sm p-3 rounded-lg bg-blue-500/20 text-blue-400';
+    status.classList.remove('hidden');
+
+    try {
+      const response = await fetch('/api/v1/auth/update-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          new_email: newEmail,
+          password: password
+        })
+      });
+
+      if (response.ok) {
+        status.textContent = '✓ Email updated successfully. Please verify your new email.';
+        status.className = 'text-sm p-3 rounded-lg bg-green-500/20 text-green-400';
+        form.reset();
+        setTimeout(loadUserEmail, 1000);
+      } else {
+        const error = await response.json();
+        status.textContent = `Error: ${error.detail || 'Failed to update email'}`;
+        status.className = 'text-sm p-3 rounded-lg bg-red-500/20 text-red-400';
+      }
+    } catch (error) {
+      status.textContent = `Error: ${error.message}`;
+      status.className = 'text-sm p-3 rounded-lg bg-red-500/20 text-red-400';
+      console.error(error);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadUserEmail();
+    document.getElementById('changePasswordForm')?.addEventListener('submit', handleChangePassword);
+    document.getElementById('updateEmailForm')?.addEventListener('submit', handleUpdateEmail);
+  });
+</script>
+{% endblock %}
+

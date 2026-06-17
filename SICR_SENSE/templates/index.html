@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SICRSense | Enterprise IFRS 9 Intelligence Platform</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #131320;
+      --accent: #00f0ff;
+      --accent2: #7c3aed;
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-primary);
+      color: #ffffff;
+      overflow-x: hidden;
+    }
+    
+    #bg-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+    
+    .glass {
+      background: rgba(19, 19, 32, 0.6);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, #00f0ff, #7c3aed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .gradient-btn {
+      background: linear-gradient(135deg, #00f0ff, #7c3aed);
+      transition: all 0.3s ease;
+    }
+    
+    .gradient-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 40px rgba(0, 240, 255, 0.3);
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-20px); }
+    }
+    
+    .floating { animation: float 6s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+  <canvas id="bg-canvas"></canvas>
+  
+  <!-- Navigation -->
+  {% include 'components/navbar.html' %}
+  
+  <!-- Hero Section -->
+  <section class="relative z-10 min-h-screen flex items-center">
+    <div class="max-w-7xl mx-auto px-6 text-center">
+      <div class="inline-flex items-center gap-2 mb-8 px-4 py-2 rounded-full border border-cyan-400/30 bg-cyan-400/10">
+        <div class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
+        <span class="text-cyan-400 text-sm font-medium">Real-time IFRS 9 Intelligence</span>
+      </div>
+      
+      <h1 class="text-5xl md:text-7xl font-bold font-['Space_Grotesk'] mb-8 leading-tight">
+        Predict SICR with<br>
+        <span class="gradient-text">Bank-Grade Precision</span>
+      </h1>
+      
+      <p class="text-xl text-gray-400 max-w-3xl mx-auto mb-12">
+        Real-time credit risk migration engine powered by ensemble ML models.
+        Detect significant increases in credit risk before they impact your portfolio.
+      </p>
+      
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        {% if user %}
+          <a href="/dashboard" class="gradient-btn px-8 py-4 rounded-full text-white font-bold text-lg">
+            <i class="fas fa-microchip mr-2"></i> Go to Dashboard
+          </a>
+        {% else %}
+          <a href="/signup" class="gradient-btn px-8 py-4 rounded-full text-white font-bold text-lg">
+            <i class="fas fa-microchip mr-2"></i> Start Assessment
+          </a>
+        {% endif %}
+        <a href="#demo" class="glass px-8 py-4 rounded-full text-white font-bold text-lg border border-white/20 hover:border-cyan-400 transition-all">
+          <i class="fas fa-play mr-2"></i> Watch Demo
+        </a>
+      </div>
+      
+      <!-- Stats -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mt-20 max-w-4xl mx-auto">
+        <div class="text-center">
+          <div class="text-3xl font-bold gradient-text">99.9%</div>
+          <div class="text-gray-400 text-sm mt-1">Uptime</div>
+        </div>
+        <div class="text-center">
+          <div class="text-3xl font-bold gradient-text">&lt;50ms</div>
+          <div class="text-gray-400 text-sm mt-1">Latency</div>
+        </div>
+        <div class="text-center">
+          <div class="text-3xl font-bold gradient-text">94%</div>
+          <div class="text-gray-400 text-sm mt-1">Accuracy</div>
+        </div>
+        <div class="text-center">
+          <div class="text-3xl font-bold gradient-text">10K+</div>
+          <div class="text-gray-400 text-sm mt-1">Predictions/day</div>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Features Section -->
+  <section id="features" class="relative z-10 py-24">
+    <div class="max-w-7xl mx-auto px-6">
+      <h2 class="text-4xl md:text-5xl font-bold font-['Space_Grotesk'] text-center mb-16">
+        Enterprise-Grade <span class="gradient-text">Features</span>
+      </h2>
+      
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="glass rounded-2xl p-8 hover:border-cyan-400/30 transition-all">
+          <div class="w-14 h-14 rounded-xl bg-cyan-400/10 flex items-center justify-center mb-6">
+            <i class="fas fa-brain text-2xl text-cyan-400"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-3">ML-Powered SICR Detection</h3>
+          <p class="text-gray-400">Ensemble of XGBoost and LightGBM models trained on millions of credit records for precise risk assessment.</p>
+        </div>
+        
+        <div class="glass rounded-2xl p-8 hover:border-purple-400/30 transition-all">
+          <div class="w-14 h-14 rounded-xl bg-purple-400/10 flex items-center justify-center mb-6">
+            <i class="fas fa-bolt text-2xl text-purple-400"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-3">Real-Time Processing</h3>
+          <p class="text-gray-400">Sub-50ms prediction latency with WebSocket streaming for instant credit decisions at scale.</p>
+        </div>
+        
+        <div class="glass rounded-2xl p-8 hover:border-green-400/30 transition-all">
+          <div class="w-14 h-14 rounded-xl bg-green-400/10 flex items-center justify-center mb-6">
+            <i class="fas fa-shield-haltered text-2xl text-green-400"></i>
+          </div>
+          <h3 class="text-xl font-bold mb-3">IFRS 9 Compliance</h3>
+          <p class="text-gray-400">Automated staging with full audit trails. Meet regulatory requirements with confidence.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- CTA Section -->
+  <section class="relative z-10 py-24">
+    <div class="max-w-4xl mx-auto px-6 text-center">
+      <div class="glass rounded-3xl p-12 border border-cyan-400/20">
+        <h2 class="text-3xl md:text-4xl font-bold font-['Space_Grotesk'] mb-6">
+          Ready to Transform Your <span class="gradient-text">Credit Risk Management</span>?
+        </h2>
+        <p class="text-gray-400 mb-8 text-lg">
+          Join leading financial institutions using SICRSense for IFRS 9 compliance and credit risk intelligence.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          {% if user %}
+            <a href="/dashboard" class="gradient-btn px-8 py-4 rounded-full text-white font-bold text-lg">
+              Open Dashboard
+            </a>
+          {% else %}
+            <a href="/signup" class="gradient-btn px-8 py-4 rounded-full text-white font-bold text-lg">
+              Start Free Trial
+            </a>
+            <a href="/login" class="glass px-8 py-4 rounded-full text-white font-bold text-lg border border-white/20 hover:border-cyan-400 transition-all">
+              Schedule Demo
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+  
+  <!-- Footer -->
+  {% include 'components/footer.html' %}
+  
+  <script>
+    // 3D Background
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bg-canvas'), alpha: true, antialias: true });
+    
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    
+    const geometry = new THREE.BufferGeometry();
+    const particlesCount = 2000;
+    const posArray = new Float32Array(particlesCount * 3);
+    
+    for(let i = 0; i < particlesCount * 3; i += 3) {
+      posArray[i] = (Math.random() - 0.5) * 10;
+      posArray[i+1] = (Math.random() - 0.5) * 10;
+      posArray[i+2] = (Math.random() - 0.5) * 5;
+    }
+    
+    geometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    const material = new THREE.PointsMaterial({ size: 0.005, color: 0x00f0ff, blending: THREE.AdditiveBlending });
+    const particles = new THREE.Points(geometry, material);
+    scene.add(particles);
+    
+    camera.position.z = 3;
+    
+    function animate() {
+      requestAnimationFrame(animate);
+      particles.rotation.y += 0.0003;
+      particles.rotation.x += 0.0001;
+      renderer.render(scene, camera);
+    }
+    
+    animate();
+    
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+    
+    // GSAP Scroll Animations
+    gsap.registerPlugin(ScrollTrigger);
+    
+    gsap.from('.glass', {
+      scrollTrigger: { trigger: '#features', start: 'top 80%' },
+      y: 50,
+      opacity: 0,
+      duration: 1,
+      stagger: 0.2
+    });
+  </script>
+  <script src="/static/js/components.js"></script>
+</body>
+</html>

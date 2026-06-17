@@ -1,0 +1,98 @@
+<!-- Filter Bar Component -->
+{% raw %}<!-- Usage: {% include 'components/filter-bar.html' with filters=filters %} -->{% endraw %}
+
+<div class="glass-card p-4">
+    <div class="flex flex-col lg:flex-row gap-4">
+        <!-- Search -->
+        <div class="flex-1">
+            {% set filter_search_id = 'filter-search' %}
+            {% set filter_search_placeholder = 'Search...' %}
+            {% set id = filter_search_id %}
+            {% set placeholder = filter_search_placeholder %}
+            {% include 'components/search-bar.html' %}
+            {% set id = None %}
+            {% set placeholder = None %}
+        </div>
+        
+        <!-- Filter Buttons -->
+        <div class="flex flex-wrap items-center gap-3">
+            {% for filter in filters %}
+                {% if filter.type == 'select' %}
+                <div class="relative" data-dropdown="filter-{{ filter.key }}">
+                    <button onclick="toggleDropdown('filter-{{ filter.key }}')" 
+                            class="glass-card px-4 py-2 rounded-xl text-sm text-gray-400 hover:text-white hover:border-cyan-400 transition-all flex items-center gap-2">
+                        <i class="fas fa-{{ filter.icon|default('filter') }} text-xs"></i>
+                        <span id="filter-{{ filter.key }}-label">{{ filter.label }}</span>
+                        <i class="fas fa-chevron-down text-[10px]"></i>
+                    </button>
+                    
+                    <div id="filter-{{ filter.key }}" 
+                         class="absolute top-full left-0 mt-2 glass-card p-2 hidden min-w-[180px] z-50">
+                        {% for option in filter.options %}
+                        <button onclick="applyFilter('{{ filter.key }}', '{{ option.value }}', '{{ option.label }}')" 
+                                class="w-full text-left px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                            {{ option.label }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                {% elif filter.type == 'date' %}
+                <div class="flex items-center gap-2">
+                    <input type="date" 
+                           class="neo-input text-sm w-40" 
+                           placeholder="{{ filter.label }}"
+                           onchange="applyDateFilter('{{ filter.key }}', this.value)">
+                </div>
+                
+                {% elif filter.type == 'toggle' %}
+                <button onclick="toggleFilter('{{ filter.key }}')" 
+                        class="filter-toggle glass-card px-4 py-2 rounded-xl text-sm transition-all
+                               {% if filter.active %}bg-cyan-400/10 text-cyan-400 border-cyan-400/30{% else %}text-gray-400 hover:text-white{% endif %}"
+                        data-filter="{{ filter.key }}">
+                    <i class="fas fa-{{ filter.icon }} mr-1.5 text-xs"></i>
+                    {{ filter.label }}
+                </button>
+                
+                {% elif filter.type == 'range' %}
+                <div class="flex items-center gap-2">
+                    <input type="number" 
+                           class="neo-input text-sm w-24" 
+                           placeholder="Min"
+                           onchange="applyRangeFilter('{{ filter.key }}', 'min', this.value)">
+                    <span class="text-gray-500">-</span>
+                    <input type="number" 
+                           class="neo-input text-sm w-24" 
+                           placeholder="Max"
+                           onchange="applyRangeFilter('{{ filter.key }}', 'max', this.value)">
+                </div>
+                {% endif %}
+            {% endfor %}
+            
+            <!-- Active Filters -->
+            <div id="active-filters" class="flex flex-wrap items-center gap-2">
+                <!-- Dynamically populated -->
+            </div>
+            
+            <!-- Clear All -->
+            <button onclick="clearAllFilters()" 
+                    id="clear-filters-btn"
+                    class="text-sm text-red-400 hover:text-red-300 transition-colors hidden">
+                <i class="fas fa-times mr-1"></i> Clear all
+            </button>
+        </div>
+        
+        <!-- Sort -->
+        <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-500">Sort by:</span>
+            <select class="neo-input text-sm py-2 px-3 rounded-xl bg-transparent" onchange="applySort(this.value)">
+                <option value="recent">Most Recent</option>
+                <option value="oldest">Oldest</option>
+                <option value="name_asc">Name A-Z</option>
+                <option value="name_desc">Name Z-A</option>
+                <option value="risk_high">Highest Risk</option>
+                <option value="risk_low">Lowest Risk</option>
+            </select>
+        </div>
+    </div>
+</div>

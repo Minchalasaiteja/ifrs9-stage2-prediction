@@ -1,0 +1,108 @@
+<!-- Tooltip Component -->
+{% raw %}<!-- Usage: {% include 'components/tooltip.html' with text='Helpful information' position='top' %} -->{% endraw %}
+
+<span class="relative inline-block tooltip-wrapper {{ class }}">
+    <!-- Trigger Element -->
+    <span class="tooltip-trigger cursor-help">
+        {% if icon %}
+        <i class="fas fa-{{ icon }} text-gray-400 hover:text-cyan-400 transition-colors"></i>
+        {% else %}
+        <i class="fas fa-info-circle text-gray-400 hover:text-cyan-400 transition-colors"></i>
+        {% endif %}
+    </span>
+    
+    <!-- Tooltip Content -->
+    <span class="tooltip-content absolute z-50 px-3 py-2 text-xs font-medium text-white 
+                 bg-[var(--bg-tertiary)] border border-white/10 rounded-lg shadow-xl
+                 opacity-0 invisible transition-all duration-200
+                 whitespace-nowrap pointer-events-none
+                 {% if position == 'top' %}
+                 bottom-full left-1/2 -translate-x-1/2 mb-2
+                 {% elif position == 'bottom' %}
+                 top-full left-1/2 -translate-x-1/2 mt-2
+                 {% elif position == 'left' %}
+                 right-full top-1/2 -translate-y-1/2 mr-2
+                 {% elif position == 'right' %}
+                 left-full top-1/2 -translate-y-1/2 ml-2
+                 {% else %}
+                 bottom-full left-1/2 -translate-x-1/2 mb-2
+                 {% endif %}"
+         role="tooltip">
+        {{ text }}
+        
+        <!-- Arrow -->
+        <span class="absolute w-2 h-2 bg-[var(--bg-tertiary)] border border-white/10 rotate-45
+                     {% if position == 'top' %}
+                     -bottom-1 left-1/2 -translate-x-1/2 border-t-transparent border-l-transparent
+                     {% elif position == 'bottom' %}
+                     -top-1 left-1/2 -translate-x-1/2 border-b-transparent border-r-transparent
+                     {% elif position == 'left' %}
+                     -right-1 top-1/2 -translate-y-1/2 border-l-transparent border-b-transparent
+                     {% elif position == 'right' %}
+                     -left-1 top-1/2 -translate-y-1/2 border-r-transparent border-t-transparent
+                     {% endif %}">
+        </span>
+    </span>
+</span>
+
+<style>
+/* Tooltip hover effect */
+.tooltip-wrapper:hover .tooltip-content {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Tooltip animation */
+.tooltip-content {
+    animation: tooltipFadeIn 0.2s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Rich tooltip with HTML content */
+.tooltip-rich .tooltip-content {
+    white-space: normal;
+    min-width: 200px;
+    max-width: 300px;
+    padding: 12px 16px;
+}
+
+.tooltip-rich .tooltip-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--accent);
+}
+
+.tooltip-rich .tooltip-body {
+    color: #a0a0b0;
+    font-size: 12px;
+    line-height: 1.5;
+}
+</style>
+
+<!-- Rich Tooltip Variant -->
+{% if rich_content %}
+<span class="relative inline-block tooltip-wrapper tooltip-rich {{ class }}">
+    <span class="tooltip-trigger cursor-help">
+        <i class="fas fa-{{ icon|default('info-circle') }} text-gray-400 hover:text-cyan-400 transition-colors"></i>
+    </span>
+    
+    <span class="tooltip-content absolute z-50 bg-[var(--bg-tertiary)] border border-white/10 rounded-xl shadow-xl
+                 opacity-0 invisible transition-all duration-200 pointer-events-none
+                 {% if position == 'top' %}bottom-full left-1/2 -translate-x-1/2 mb-2{% endif %}
+                 {% if position == 'bottom' %}top-full left-1/2 -translate-x-1/2 mt-2{% endif %}"
+         role="tooltip">
+        <div class="tooltip-title">{{ title }}</div>
+        <div class="tooltip-body">{{ body|safe }}</div>
+    </span>
+</span>
+{% endif %}

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #7c3aed, #ef4444);
+            padding: 40px;
+            text-align: center;
+            color: white;
+        }
+        .header .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .content {
+            padding: 40px;
+        }
+        .alert-details {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .alert-details .detail {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .alert-details .detail:last-child {
+            border-bottom: none;
+        }
+        .action-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #ef4444;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="icon">🔒</div>
+            <h1>Security Alert</h1>
+            <p style="opacity: 0.9;">Important account notification</p>
+        </div>
+        <div class="content">
+            <h2>Hi {{ username }},</h2>
+            <p>We detected an important security event on your SICRSense account:</p>
+            
+            <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 16px; border-radius: 4px; margin: 20px 0;">
+                <p style="margin: 0; font-weight: bold; color: #991b1b;">{{ action }}</p>
+            </div>
+            
+            <div class="alert-details">
+                <h3 style="margin-top: 0;">Event Details</h3>
+                <div class="detail">
+                    <span style="color: #666;">Action:</span>
+                    <span style="font-weight: 600;">{{ action }}</span>
+                </div>
+                <div class="detail">
+                    <span style="color: #666;">Date & Time:</span>
+                    <span>{{ timestamp }}</span>
+                </div>
+                <div class="detail">
+                    <span style="color: #666;">IP Address:</span>
+                    <span style="font-family: monospace;">{{ ip_address }}</span>
+                </div>
+                <div class="detail">
+                    <span style="color: #666;">Location:</span>
+                    <span>Detected automatically</span>
+                </div>
+            </div>
+            
+            <p style="color: #666; font-size: 14px;">
+                If this was you, no further action is required. If you don't recognize this activity, 
+                please secure your account immediately:
+            </p>
+            
+            <div style="text-align: center;">
+                <a href="https://sicrsense.com/security" class="action-button">Secure My Account</a>
+            </div>
+            
+            <div style="background: #f0f9ff; padding: 16px; border-radius: 8px; margin-top: 20px;">
+                <p style="margin: 0; font-size: 14px;">
+                    <strong>🔐 Security Tips:</strong><br>
+                    • Enable two-factor authentication<br>
+                    • Use a strong, unique password<br>
+                    • Never share your credentials<br>
+                    • Review recent account activity
+                </p>
+            </div>
+        </div>
+        <div class="footer">
+            <p>&copy; {{ year }} SICRSense. All rights reserved.</p>
+            <p>This is an automated security notification</p>
+        </div>
+    </div>
+  <script src="/static/js/components.js"></script>
+</body>
+</html>

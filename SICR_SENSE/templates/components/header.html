@@ -1,0 +1,54 @@
+<!-- Header Component -->
+<header class="sticky top-0 z-40 glass-card rounded-none border-l-0 border-r-0 border-t-0 px-8 py-4">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <!-- Mobile Menu Toggle -->
+            <button id="mobile-menu-toggle" class="lg:hidden text-gray-400 hover:text-white transition-colors" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+            
+            <!-- Page Title -->
+            <div>
+                <h2 class="text-2xl font-bold font-['Space_Grotesk']" id="page-title">{{ title }}</h2>
+                <p class="text-sm text-gray-500 mt-1" id="page-subtitle">{{ subtitle }}</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <!-- Global Search -->
+            <div class="hidden md:block relative">
+                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                <input type="text" 
+                       placeholder="Search..." 
+                       class="neo-input pl-12 pr-4 py-2 text-sm w-64"
+                       id="global-search"
+                       onkeyup="handleGlobalSearch(event)">
+                <div id="search-results" class="absolute top-full left-0 right-0 mt-2 glass-card p-2 hidden max-h-64 overflow-y-auto">
+                    <!-- Search results populated dynamically -->
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="hidden md:flex items-center gap-2">
+                <button id="themeToggle" class="glass-card p-2.5 rounded-xl hover:border-cyan-400 transition-all group" title="Toggle theme">
+                    <i id="themeIcon" class="fas fa-moon text-gray-400 group-hover:text-cyan-400 transition-colors"></i>
+                </button>
+                <button class="glass-card p-2.5 rounded-xl hover:border-cyan-400 transition-all group" title="Refresh" onclick="refreshData()">
+                    <i class="fas fa-sync-alt text-gray-400 group-hover:text-cyan-400 transition-colors"></i>
+                </button>
+                <button class="glass-card p-2.5 rounded-xl hover:border-cyan-400 transition-all group" title="Fullscreen" onclick="toggleFullscreen()">
+                    <i class="fas fa-expand text-gray-400 group-hover:text-cyan-400 transition-colors"></i>
+                </button>
+                <button class="glass-card p-2.5 rounded-xl hover:border-cyan-400 transition-all group" title="Export" onclick="exportData()">
+                    <i class="fas fa-download text-gray-400 group-hover:text-cyan-400 transition-colors"></i>
+                </button>
+            </div>
+            
+            <!-- Notification Bell -->
+            {% include 'components/notification-bell.html' %}
+            
+            <!-- User Menu -->
+            {% include 'components/user-avatar.html' %}
+        </div>
+    </div>
+</header>

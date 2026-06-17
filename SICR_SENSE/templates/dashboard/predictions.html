@@ -1,0 +1,131 @@
+{% extends 'dashboard_base.html' %}
+
+{% block title %}SICRSense | Predictions{% endblock %}
+
+{% block content %}
+<div class="glass-card p-8">
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div>
+      <h1 class="text-3xl font-bold">Predictions</h1>
+      <p class="text-gray-400 mt-2">Create, review and validate model prediction requests.</p>
+    </div>
+    <div class="flex gap-3">
+      <button id="newPredictionBtn" class="px-6 py-3 rounded-xl bg-cyan-500/15 text-cyan-200 border border-cyan-500/20 hover:border-cyan-400 transition-all"><i class="fas fa-plus mr-2"></i>New Prediction</button>
+      <button id="downloadPredictions" class="px-6 py-3 rounded-xl border border-gray-700 text-gray-200 hover:border-cyan-400 transition-all"><i class="fas fa-download mr-2"></i>Download</button>
+      <button id="refreshPredictions" class="px-6 py-3 rounded-xl border border-gray-700 text-gray-200 hover:border-cyan-400 transition-all"><i class="fas fa-sync-alt mr-2"></i>Refresh</button>
+    </div>
+  </div>
+</div>
+<div class="glass-card p-6 overflow-x-auto">
+  <table class="min-w-full text-left text-gray-300">
+    <thead class="border-b border-gray-800 text-sm uppercase tracking-[0.12em] text-gray-400">
+      <tr>
+        <th class="py-3 px-4">Loan ID</th>
+        <th class="py-3 px-4">Risk Tier</th>
+        <th class="py-3 px-4">Probability</th>
+        <th class="py-3 px-4">Stage</th>
+        <th class="py-3 px-4">Latency</th>
+        <th class="py-3 px-4">Created</th>
+      </tr>
+    </thead>
+    <tbody id="predictionHistoryTableBody">
+      <tr>
+        <td colspan="6" class="text-center text-gray-500 py-6">Loading predictions...</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const PREDICTIONS_API = '/api/v1/predictions/history?limit=50';
+  let allPredictions = [];
+
+  async function loadPredictionHistory() {
+    const token = localStorage.getItem('access_token');
+    const tbody = document.getElementById('predictionHistoryTableBody');
+
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-6">Loading predictions...</td></tr>';
+
+    try {
+      const response = await fetch(PREDICTIONS_API, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-red-400 py-6">Failed to load predictions (${response.status})</td></tr>`;
+        return;
+      }
+
+      const result = await response.json();
+      allPredictions = result.predictions || [];
+
+      if (!allPredictions.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-6">No prediction history available yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = allPredictions.map(prediction => {
+        const probability = (prediction.migration_probability || 0) * 100;
+        const stage = prediction.predicted_migration ? 'Stage 2' : 'Stage 1';
+        const timestamp = prediction.timestamp ? new Date(prediction.timestamp).toLocaleString() : '—';
+
+        return `
+          <tr class="border-b border-gray-800 hover:bg-white/5">
+            <td class="py-3 px-4 font-mono text-sm">${prediction.loan_id || '—'}</td>
+            <td class="py-3 px-4">${prediction.risk_tier || 'Unknown'}</td>
+            <td class="py-3 px-4 font-bold">${probability.toFixed(1)}%</td>
+            <td class="py-3 px-4">${stage}</td>
+            <td class="py-3 px-4 text-gray-400">${prediction.processing_time_ms ?? '--'}ms</td>
+            <td class="py-3 px-4 text-gray-500 text-sm">${timestamp}</td>
+          </tr>`;
+      }).join('');
+    } catch (error) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-red-400 py-6">Unable to load predictions.</td></tr>`;
+      console.error(error);
+    }
+  }
+
+  function downloadPredictions() {
+    if (!allPredictions.length) {
+      alert('No predictions to download');
+      return;
+    }
+
+    const csv = [
+      'Loan ID,Risk Tier,Probability (%),Stage,Latency (ms),Created'
+    ].concat(allPredictions.map(p => [
+      p.loan_id || 'N/A',
+      p.risk_tier || 'Unknown',
+      ((p.migration_probability || 0) * 100).toFixed(1),
+      (p.predicted_migration ? 'Stage 2' : 'Stage 1'),
+      p.processing_time_ms || '--',
+      p.timestamp ? new Date(p.timestamp).toLocaleString() : '—'
+    ].join(','))).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `predictions_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('newPredictionBtn')?.addEventListener('click', () => {
+      window.location.href = '/dashboard';
+    });
+    document.getElementById('refreshPredictions')?.addEventListener('click', loadPredictionHistory);
+    document.getElementById('downloadPredictions')?.addEventListener('click', downloadPredictions);
+    loadPredictionHistory();
+  });
+</script>
+{% endblock %}
+

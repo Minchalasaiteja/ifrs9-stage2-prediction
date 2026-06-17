@@ -1,0 +1,184 @@
+<!-- Pagination Component -->
+<!-- Usage: {% include 'components/pagination.html' %} -->
+
+<div id="pagination-data"
+     data-current-page="{{ current_page }}"
+     data-total-pages="{{ total_pages }}">
+</div>
+
+<div class="flex flex-col sm:flex-row items-center justify-between gap-4 py-4">
+
+    <!-- Results Info -->
+    <div class="text-sm text-gray-400">
+        Showing
+        <span class="text-white font-semibold">{{ start_item or 1 }}</span>
+        to
+        <span class="text-white font-semibold">{{ end_item or 10 }}</span>
+        of
+        <span class="text-white font-semibold">{{ total_items or 0 }}</span>
+        results
+    </div>
+
+    <!-- Pagination -->
+    <nav class="flex items-center gap-2" aria-label="Pagination">
+
+        <!-- First -->
+        <button
+            onclick="goToPage(1)"
+            class="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all {% if current_page == 1 %}opacity-50 cursor-not-allowed{% endif %}"
+            {% if current_page == 1 %}disabled{% endif %}
+            title="First page">
+
+            <i class="fas fa-angle-double-left text-sm"></i>
+        </button>
+
+        <!-- Previous -->
+        <button
+            onclick="goToPage({{ current_page-1 }})"
+            class="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all {% if current_page == 1 %}opacity-50 cursor-not-allowed{% endif %}"
+            {% if current_page == 1 %}disabled{% endif %}
+            title="Previous page">
+
+            <i class="fas fa-chevron-left text-sm"></i>
+
+        </button>
+
+        <!-- Pages -->
+
+        <div class="flex items-center gap-1">
+
+            {% for page in pages %}
+
+                {% if page == '...' %}
+
+                    <span class="w-10 h-10 flex items-center justify-center text-gray-600">
+                        ...
+                    </span>
+
+                {% else %}
+
+                    <button
+                        onclick="goToPage({{ page }})"
+
+                        class="w-10 h-10 rounded-xl text-sm font-semibold transition-all
+
+                        {% if page == current_page %}
+                            gradient-btn text-white shadow-[0_0_15px_rgba(0,240,255,0.3)]
+                        {% else %}
+                            text-gray-400 hover:text-white hover:bg-white/5
+                        {% endif %}">
+
+                        {{ page }}
+
+                    </button>
+
+                {% endif %}
+
+            {% endfor %}
+
+        </div>
+
+        <!-- Next -->
+
+        <button
+            onclick="goToPage({{ current_page+1 }})"
+
+            class="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all {% if current_page == total_pages %}opacity-50 cursor-not-allowed{% endif %}"
+
+            {% if current_page == total_pages %}disabled{% endif %}
+
+            title="Next page">
+
+            <i class="fas fa-chevron-right text-sm"></i>
+
+        </button>
+
+        <!-- Last -->
+
+        <button
+
+            onclick="goToPage({{ total_pages }})"
+
+            class="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 transition-all {% if current_page == total_pages %}opacity-50 cursor-not-allowed{% endif %}"
+
+            {% if current_page == total_pages %}disabled{% endif %}
+
+            title="Last page">
+
+            <i class="fas fa-angle-double-right text-sm"></i>
+
+        </button>
+
+    </nav>
+
+    <!-- Per Page -->
+
+    <div class="flex items-center gap-2">
+
+        <span class="text-sm text-gray-400">
+
+            Show
+
+        </span>
+
+        <select
+            class="neo-input text-sm py-1.5 px-2 rounded-lg w-16"
+            onchange="changePerPage(this.value)">
+
+            <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+
+            <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+
+            <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+
+            <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+
+        </select>
+
+    </div>
+
+</div>
+
+<!-- Jump -->
+
+<div class="flex justify-center pb-4">
+
+    <div class="flex items-center gap-2 text-sm">
+
+        <span class="text-gray-400">
+
+            Go to page:
+
+        </span>
+
+        <input
+
+            id="page-jump-input"
+
+            type="number"
+
+            min="1"
+
+            max="{{ total_pages }}"
+
+            value="{{ current_page }}"
+
+            class="neo-input w-16 text-center py-1.5 text-sm"
+
+            onkeydown="if(event.key==='Enter'){jumpToPage();}"
+
+        >
+
+        <button
+
+            onclick="jumpToPage()"
+
+            class="glass-card px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition-colors text-sm">
+
+            Go
+
+        </button>
+
+    </div>
+
+</div>

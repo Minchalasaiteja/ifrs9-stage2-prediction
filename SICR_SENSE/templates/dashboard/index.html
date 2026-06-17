@@ -1,0 +1,181 @@
+{% extends 'dashboard_base.html' %}
+
+{% block title %}SICRSense | Risk Intelligence Dashboard{% endblock %}
+
+{% block content %}
+<div class="grid lg:grid-cols-12 gap-8">
+          
+          <!-- Input Panel -->
+          <div class="lg:col-span-8 glass-card p-8">
+            <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+              <i class="fas fa-sliders text-cyan-400"></i> Telemetry Inputs
+            </h3>
+            
+            <form id="inference-form">
+              <div class="grid md:grid-cols-3 gap-6 mb-8">
+                <!-- Core Loan Data -->
+                <div class="space-y-4">
+                  <h4 class="text-xs text-cyan-400 uppercase tracking-wider font-bold">Core</h4>
+                  <div>
+                    <label class="block text-xs text-gray-400 mb-1">Loan ID</label>
+                    <input type="text" id="loan_id" value="LN-8472-X" class="neo-input font-mono">
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-400 mb-1">Amount (GBP)</label>
+                    <input type="number" id="loan_amount_gbp" value="250000" class="neo-input font-mono">
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-400 mb-1">Balance</label>
+                    <input type="number" id="outstanding_balance_gbp" value="240000" class="neo-input font-mono">
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block text-xs text-gray-400 mb-1">Term</label>
+                      <input type="number" id="original_loan_term_months" value="360" class="neo-input font-mono">
+                    </div>
+                    <div>
+                      <label class="block text-xs text-gray-400 mb-1">Remaining</label>
+                      <input type="number" id="remaining_term_months" value="340" class="neo-input font-mono">
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Behavioral Data -->
+                <div class="space-y-4">
+                  <h4 class="text-xs text-purple-400 uppercase tracking-wider font-bold">Behavioral</h4>
+                  <div>
+                    <label class="block text-xs text-gray-400 mb-1">Credit Score</label>
+                    <input type="number" id="internal_credit_score" value="680" class="neo-input font-mono">
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-400 mb-1">Score Change (Q)</label>
+                    <input type="number" id="credit_score_change_last_quarter" value="-15" class="neo-input font-mono">
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-400 mb-1">Inquiries (6m)</label>
+                    <input type="number" id="bureau_inquiries_last_6m" value="2" class="neo-input font-mono">
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-400 mb-1">Months on Book</label>
+                    <input type="number" id="months_on_book" value="20" class="neo-input font-mono">
+                  </div>
+                </div>
+                
+                <!-- IFRS 9 Data -->
+                <div class="space-y-4">
+                  <h4 class="text-xs text-red-400 uppercase tracking-wider font-bold">IFRS 9</h4>
+                  <div>
+                    <label class="block text-xs text-gray-400 mb-1">Days Past Due</label>
+                    <input type="number" id="days_past_due_current" value="0" class="neo-input font-mono">
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-400 mb-1">Missed Pay (12m)</label>
+                    <input type="number" id="missed_payments_last_12m" value="0" class="neo-input font-mono">
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-400 mb-1">PD Origination (%)</label>
+                    <input type="number" step="0.01" id="pd_12m_at_origination_pct" value="1.20" class="neo-input font-mono">
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-400 mb-1">PD Current (%)</label>
+                    <input type="number" step="0.01" id="pd_12m_current_pct" value="1.85" class="neo-input font-mono">
+                  </div>
+                  <div>
+                    <label class="block text-xs text-gray-400 mb-1">PD Change (%)</label>
+                    <input type="number" step="0.1" id="pd_relative_change_pct" value="54.2" class="neo-input font-mono">
+                  </div>
+                </div>
+              </div>
+              
+              <button type="submit" class="gradient-btn w-full text-lg py-4">
+                <i class="fas fa-microchip mr-2"></i> Execute ML Inference
+              </button>
+            </form>
+          </div>
+          
+          <!-- Results Panel -->
+          <div class="lg:col-span-4 space-y-6">
+            
+            <!-- Prediction Result -->
+            <div class="glass-card p-8 text-center">
+              <h3 class="text-lg font-bold mb-6">Assessment Output</h3>
+              
+              <div id="state-waiting" class="py-8">
+                <i class="fas fa-piggy-bank text-5xl text-gray-600 mb-4"></i>
+                <p class="text-gray-500">Awaiting telemetry input</p>
+              </div>
+              
+              <div id="state-loading" class="hidden py-8">
+                <div class="flex justify-center mb-4">
+                  <div class="w-12 h-12 border-2 border-cyan-400/20 border-t-cyan-400 rounded-full animate-spin"></div>
+                </div>
+                <p class="text-cyan-400">Processing risk weights...</p>
+              </div>
+              
+              <div id="state-result" class="hidden">
+                <!-- Probability Ring -->
+                <div class="flex justify-center mb-6 relative">
+                  <svg class="w-48 h-48 transform -rotate-90">
+                    <circle cx="96" cy="96" r="88" stroke="currentColor" stroke-width="12" fill="none" class="text-gray-800" />
+                    <circle id="probability-ring" cx="96" cy="96" r="88" stroke="#00f0ff" stroke-width="12" fill="none" stroke-dasharray="553" stroke-dashoffset="553" class="progress-ring" />
+                  </svg>
+                  <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <span id="res-prob" class="text-5xl font-bold font-mono text-cyan-400">0%</span>
+                    <span class="text-xs text-gray-500 mt-1">Migration Risk</span>
+                  </div>
+                </div>
+                
+                <div class="space-y-3">
+                  <div class="flex justify-between items-center p-3 rounded-xl bg-white/5">
+                    <span class="text-gray-400">Risk Tier</span>
+                    <span id="res-tier" class="font-bold text-lg">--</span>
+                  </div>
+                  <div class="flex justify-between items-center p-3 rounded-xl bg-white/5">
+                    <span class="text-gray-400">Action</span>
+                    <span id="res-action" class="font-bold">--</span>
+                  </div>
+                  <div class="flex justify-between items-center p-3 rounded-xl bg-white/5">
+                    <span class="text-gray-400">IFRS 9 Stage</span>
+                    <span id="res-stage" class="font-bold text-lg">--</span>
+                  </div>
+                  <div class="flex justify-between items-center p-3 rounded-xl bg-white/5">
+                    <span class="text-gray-400">Latency</span>
+                    <span id="res-latency" class="font-mono text-sm text-gray-400">--</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Recent Predictions -->
+            <div class="glass-card p-6">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold">Recent Predictions</h3>
+                <a href="/predictions" class="text-cyan-400 hover:underline text-sm">View all predictions</a>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="min-w-full text-left text-gray-300">
+                  <thead class="border-b border-gray-800 text-sm uppercase tracking-[0.12em] text-gray-400">
+                    <tr>
+                      <th class="py-3 px-4">Loan</th>
+                      <th class="py-3 px-4">Tier</th>
+                      <th class="py-3 px-4">Probability</th>
+                      <th class="py-3 px-4">Stage</th>
+                      <th class="py-3 px-4">Latency</th>
+                      <th class="py-3 px-4">When</th>
+                    </tr>
+                  </thead>
+                  <tbody id="history-table-body">
+                    <tr>
+                      <td colspan="6" class="text-center text-gray-500 py-6">No predictions yet</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/dashboard.js"></script>
+{% endblock %}

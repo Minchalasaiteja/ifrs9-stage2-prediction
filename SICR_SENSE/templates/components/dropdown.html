@@ -1,0 +1,82 @@
+<!-- Dropdown Component -->
+{% raw %}<!-- Usage: {% include 'components/dropdown.html' with id='my-dropdown' items=dropdown_items %} -->{% endraw %}
+
+<div class="relative inline-block" data-dropdown="{{ id }}">
+    <!-- Trigger Button -->
+    <button onclick="toggleDropdown('{{ id }}')" 
+            class="dropdown-trigger glass-card px-4 py-2.5 rounded-xl text-sm text-gray-300 hover:text-white hover:border-cyan-400 transition-all flex items-center gap-2 group">
+        <span id="{{ id }}-label">{{ placeholder|default('Select option') }}</span>
+        <i class="fas fa-chevron-down text-xs text-gray-500 group-hover:text-cyan-400 transition-colors"></i>
+    </button>
+    
+    <!-- Dropdown Menu -->
+    <div id="{{ id }}" 
+         class="dropdown-menu absolute mt-2 glass-card p-2 hidden min-w-[200px] z-50 max-h-64 overflow-y-auto
+                {% if align == 'right' %}right-0{% else %}left-0{% endif %}"
+         role="menu">
+        
+        {% if searchable %}
+        <!-- Search Input -->
+        <div class="px-3 pb-2">
+            <div class="relative">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
+                <input type="text" 
+                       class="neo-input pl-8 pr-3 py-2 text-sm w-full" 
+                       placeholder="Search..."
+                       oninput="filterDropdown('{{ id }}', this.value)">
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Menu Items -->
+        <div class="dropdown-items">
+            {% for item in items %}
+                {% if item.type == 'divider' %}
+                <hr class="border-white/5 my-1">
+                {% elif item.type == 'header' %}
+                <div class="px-3 py-2 text-xs text-gray-500 uppercase tracking-wider font-semibold">{{ item.label }}</div>
+                {% elif item.type == 'checkbox' %}
+                <label class="flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 rounded-lg cursor-pointer transition-colors">
+                    <input type="checkbox" 
+                           class="w-4 h-4 rounded border-gray-600 bg-transparent checked:bg-cyan-400 focus:ring-cyan-400"
+                           value="{{ item.value }}"
+                           {% if item.checked %}checked{% endif %}
+                           onchange="handleDropdownCheckbox('{{ id }}', this)">
+                    <span class="text-sm text-gray-400">{{ item.label }}</span>
+                </label>
+                {% else %}
+                <button onclick="selectDropdownItem('{{ id }}', '{{ item.value }}', '{{ item.label }}')" 
+                        class="dropdown-item w-full text-left px-3 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors flex items-center gap-3"
+                        data-value="{{ item.value }}"
+                        role="menuitem">
+                    {% if item.icon %}
+                    <i class="fas fa-{{ item.icon }} w-5 text-gray-500"></i>
+                    {% endif %}
+                    
+                    <div class="flex-1">
+                        <p>{{ item.label }}</p>
+                        {% if item.description %}
+                        <p class="text-xs text-gray-600 mt-0.5">{{ item.description }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    {% if item.badge %}
+                    <span class="px-2 py-0.5 rounded-full text-[10px] bg-cyan-400/10 text-cyan-400">{{ item.badge }}</span>
+                    {% endif %}
+                    
+                    {% if item.shortcut %}
+                    <span class="text-xs text-gray-600 font-mono">{{ item.shortcut }}</span>
+                    {% endif %}
+                </button>
+                {% endif %}
+            {% endfor %}
+        </div>
+        
+        {% if footer %}
+        <!-- Footer -->
+        <div class="border-t border-white/5 mt-2 pt-2 px-3">
+            {{ footer|safe }}
+        </div>
+        {% endif %}
+    </div>
+</div>

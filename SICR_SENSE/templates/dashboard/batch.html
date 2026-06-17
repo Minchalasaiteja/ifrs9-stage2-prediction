@@ -1,0 +1,163 @@
+{% extends 'dashboard_base.html' %}
+
+{% block title %}SICRSense | Batch Processing{% endblock %}
+
+{% block content %}
+<div class="glass-card p-8 space-y-6">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 class="text-3xl font-bold">Batch Processing</h1>
+              <p class="text-gray-400 mt-2">Upload loan batches and review bulk IFRS 9 predictions.</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <button id="uploadBatchBtn" class="px-6 py-3 rounded-xl bg-cyan-500/15 text-cyan-200 border border-cyan-500/20">Upload Batch</button>
+              <button id="refreshBatchStatus" class="px-6 py-3 rounded-xl border border-gray-700 text-gray-200 hover:border-cyan-400">Refresh</button>
+            </div>
+          </div>
+          <input type="file" id="batchUploadInput" accept=".json,.csv" class="hidden" />
+          <div id="batchStatus" class="text-sm text-gray-400 p-4 rounded-xl bg-white/5">Upload a JSON or CSV file containing loan data to process batch predictions.</div>
+          <div class="space-y-5">
+            <div class="glass-card p-6">
+              <h2 class="text-xl font-semibold mb-4">Upload Format</h2>
+              <p class="text-sm text-gray-400 mb-3"><strong>JSON Format:</strong></p>
+              <pre class="bg-black/50 p-3 rounded text-xs text-gray-300 overflow-x-auto mb-4">{"loans": [
+  {"loan_id": "LN-001", "loan_amount_gbp": 250000, ...},
+  {"loan_id": "LN-002", "loan_amount_gbp": 320000, ...}
+]}</pre>
+              <div id="processingInfo" class="hidden">
+                <div class="mt-4 p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+                  <p class="text-cyan-400 text-sm"><i class="fas fa-hourglass-half mr-2 animate-spin"></i>Processing batch... <span id="processingCount">0</span> records</p>
+                </div>
+              </div>
+            </div>
+            <div class="glass-card p-6">
+              <h2 class="text-xl font-semibold mb-4">Batch Summary</h2>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="p-4 rounded-xl bg-white/5 border border-white/10">
+                  <p class="text-gray-500 text-sm">Total Processed</p>
+                  <p class="text-2xl font-bold text-cyan-400" id="totalProcessed">0</p>
+                </div>
+                <div class="p-4 rounded-xl bg-white/5 border border-white/10">
+                  <p class="text-gray-500 text-sm">Success Rate</p>
+                  <p class="text-2xl font-bold text-green-400" id="successRate">0%</p>
+                </div>
+                <div class="p-4 rounded-xl bg-white/5 border border-white/10">
+                  <p class="text-gray-500 text-sm">Last Completed</p>
+                  <p class="text-sm text-gray-300" id="lastCompleted">Never</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let lastBatchCount = 0;
+  
+  async function processBatchFile(file) {
+    const status = document.getElementById('batchStatus');
+    const token = localStorage.getItem('access_token');
+    const processingInfo = document.getElementById('processingInfo');
+
+    if (!file) return;
+
+    processingInfo.classList.remove('hidden');
+    status.textContent = 'Reading file...';
+    status.className = 'text-sm text-gray-400 p-4 rounded-xl bg-white/5';
+
+    try {
+      const text = await file.text();
+      let loans = [];
+      
+      // Handle JSON
+      if (file.name.endsWith('.json')) {
+        const parsed = JSON.parse(text);
+        loans = parsed.loans || parsed.data || (Array.isArray(parsed) ? parsed : []);
+        if (!Array.isArray(loans)) {
+          loans = [loans];
+        }
+      }
+      // Handle CSV
+      else if (file.name.endsWith('.csv')) {
+        const lines = text.trim().split('\n');
+        const headers = lines[0].split(',').map(h => h.trim());
+        loans = lines.slice(1).map(line => {
+          const values = line.split(',').map(v => v.trim());
+          const loan = {};
+          headers.forEach((h, i) => {
+            const key = h.toLowerCase().replace(/\s+/g, '_');
+            const value = values[i];
+            loan[key] = isNaN(value) ? value : parseFloat(value);
+          });
+          return loan;
+        });
+      }
+
+      if (!loans.length) {
+        throw new Error('No loan records found in file');
+      }
+
+      document.getElementById('processingCount').textContent = loans.length;
+      status.textContent = `Processing ${loans.length} records...`;
+
+      const response = await fetch('/api/v1/predict/batch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ loans: loans })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        status.textContent = `Error: ${error.detail || response.statusText}`;
+        status.classList.add('text-red-400');
+        status.classList.remove('text-gray-400');
+        processingInfo.classList.add('hidden');
+        return;
+      }
+
+      const result = await response.json();
+      lastBatchCount = result.batch_size || result.data?.predictions?.length || loans.length;
+      
+      status.textContent = `✓ Batch processed successfully: ${lastBatchCount} predictions generated`;
+      status.classList.remove('text-red-400');
+      status.classList.add('text-green-400');
+      
+      document.getElementById('totalProcessed').textContent = lastBatchCount;
+      document.getElementById('successRate').textContent = '100%';
+      document.getElementById('lastCompleted').textContent = new Date().toLocaleString();
+      
+      processingInfo.classList.add('hidden');
+    } catch (error) {
+      status.textContent = `Error: ${error.message || 'Unable to process batch file'}`;
+      status.classList.add('text-red-400');
+      status.classList.remove('text-gray-400');
+      console.error(error);
+      processingInfo.classList.add('hidden');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('uploadBatchBtn')?.addEventListener('click', () => {
+      document.getElementById('batchUploadInput')?.click();
+    });
+
+    document.getElementById('batchUploadInput')?.addEventListener('change', (event) => {
+      const file = event.target.files?.[0];
+      if (file) {
+        processBatchFile(file);
+      }
+    });
+
+    document.getElementById('refreshBatchStatus')?.addEventListener('click', () => {
+      const status = document.getElementById('batchStatus');
+      status.textContent = 'Batch status refreshed. Upload a file to process.';
+      status.className = 'text-sm text-gray-400 p-4 rounded-xl bg-white/5';
+    });
+  });
+</script>
+{% endblock %}
+

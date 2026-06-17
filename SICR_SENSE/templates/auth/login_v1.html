@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SICRSense Enterprise Login - Access your IFRS 9 credit risk intelligence platform">
+    <title>SICRSense | Enterprise Login</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-base: #030014;
+            --bg-secondary: #0a0a1a;
+            --accent-cyan: #00f0ff;
+            --accent-purple: #7c3aed;
+            --accent-pink: #ff007f;
+            --accent-gold: #ffd700;
+            --accent-saffron: #ff9933;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --glass-bg: rgba(10, 10, 25, 0.5);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-highlight: rgba(255, 255, 255, 0.12);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --input-bg: rgba(255, 255, 255, 0.04);
+            --input-border: rgba(255, 255, 255, 0.12);
+            --card-bg: rgba(10, 10, 25, 0.5);
+            --card-shadow: 0 30px 60px rgba(0,0,0,0.5);
+            --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-bounce: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        body.light {
+            --bg-base: #f0f4ff;
+            --bg-secondary: #ffffff;
+            --glass-bg: rgba(255, 255, 255, 0.75);
+            --glass-border: rgba(0, 0, 0, 0.08);
+            --glass-highlight: rgba(255, 255, 255, 0.9);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --input-bg: rgba(0, 0, 0, 0.02);
+            --input-border: rgba(0, 0, 0, 0.1);
+            --card-bg: rgba(255, 255, 255, 0.75);
+            --card-shadow: 0 20px 50px rgba(0,0,0,0.08);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            transition: background-color 0.5s ease, color 0.4s ease;
+            position: relative;
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--accent-cyan);
+            outline-offset: 4px;
+            border-radius: 6px;
+        }
+
+        .skip-link {
+            position: absolute;
+            top: -100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent-cyan);
+            color: #000;
+            padding: 8px 16px;
+            border-radius: 0 0 8px 8px;
+            z-index: 10001;
+            transition: top 0.3s;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        .skip-link:focus { top: 0; }
+
+        /* Mesh Background */
+        .mesh-bg {
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100vw; height: 100vh; 
+            z-index: -2;
+            background: 
+                radial-gradient(circle at 15% 50%, rgba(124, 58, 237, 0.2), transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(0, 240, 255, 0.2), transparent 50%),
+                radial-gradient(circle at 50% 80%, rgba(255, 0, 127, 0.12), transparent 50%),
+                radial-gradient(circle at 25% 80%, rgba(255, 215, 0, 0.08), transparent 40%);
+            filter: blur(60px);
+            animation: mesh-morph 20s ease-in-out infinite alternate;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+
+        body.light .mesh-bg {
+            background: 
+                radial-gradient(circle at 15% 50%, rgba(124, 58, 237, 0.08), transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(0, 102, 204, 0.08), transparent 50%),
+                radial-gradient(circle at 50% 80%, rgba(255, 153, 51, 0.06), transparent 50%);
+            filter: blur(80px);
+        }
+
+        @keyframes mesh-morph {
+            0% { transform: scale(1) rotate(0deg); }
+            33% { transform: scale(1.15) rotate(5deg); }
+            66% { transform: scale(1.05) rotate(-3deg); }
+            100% { transform: scale(1.1) rotate(2deg); }
+        }
+
+        #particle-canvas {
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            z-index: -1; 
+            pointer-events: none;
+        }
+
+        /* Glass Card */
+        .premium-glass {
+            background: var(--card-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 
+                var(--card-shadow),
+                inset 0 1px 0 var(--glass-highlight),
+                inset 0 0 40px rgba(124, 58, 237, 0.08);
+            border-radius: 32px;
+            position: relative;
+            transition: all 0.4s ease;
+        }
+
+        /* Input Fields */
+        .input-group { position: relative; margin-bottom: 1.25rem; }
+        
+        .input-peer {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            padding: 16px 20px;
+            border-radius: 16px;
+            color: var(--text-primary);
+            font-size: 15px;
+            transition: all 0.3s ease;
+            outline: none;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .input-peer::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.4;
+        }
+
+        .input-peer:focus {
+            background: rgba(0, 240, 255, 0.06);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.12);
+        }
+
+        .input-label {
+            position: absolute;
+            left: 20px;
+            top: 16px;
+            color: var(--text-secondary);
+            font-size: 15px;
+            pointer-events: none;
+            transition: all 0.3s ease;
+            background: transparent;
+        }
+
+        .input-peer:focus ~ .input-label,
+        .input-peer:not(:placeholder-shown) ~ .input-label {
+            top: -10px; left: 14px;
+            font-size: 11px;
+            background: var(--bg-base);
+            padding: 2px 8px;
+            color: var(--accent-cyan);
+            border-radius: 6px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        body.light .input-peer:focus ~ .input-label,
+        body.light .input-peer:not(:placeholder-shown) ~ .input-label {
+            background: #f0f4ff;
+        }
+
+        /* Buttons */
+        .btn-glow {
+            position: relative;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            color: white;
+            font-weight: 700;
+            border-radius: 16px;
+            padding: 16px 32px;
+            width: 100%;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-glow::before {
+            content: ''; 
+            position: absolute; 
+            top: 0; left: -100%; 
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-glow:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(124, 58, 237, 0.5);
+        }
+        .btn-glow:hover::before { left: 100%; }
+        .btn-glow:active { transform: translateY(-1px); }
+        .btn-glow:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            font-weight: 600;
+            border-radius: 16px;
+            padding: 14px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn-outline:hover { 
+            background: rgba(255,255,255,0.06); 
+            border-color: var(--accent-cyan);
+        }
+
+        /* Spinner */
+        .spinner {
+            width: 18px; height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* 2FA Input */
+        .code-input {
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 14px;
+            padding: 14px;
+            color: var(--text-primary);
+            text-align: center;
+            font-size: 22px;
+            letter-spacing: 10px;
+            width: 100%;
+            outline: none;
+            transition: all var(--transition-base);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .code-input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+        }
+
+        /* CHARACTER WRAPPER */
+        .character-wrapper {
+            position: fixed;
+            z-index: 1000;
+            cursor: grab;
+            transition: filter 0.3s ease;
+            filter: drop-shadow(0 10px 30px rgba(0, 240, 255, 0.3));
+            width: 140px;
+            height: auto;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .character-wrapper:active { cursor: grabbing; }
+        .character-wrapper.dragging { 
+            filter: drop-shadow(0 20px 50px rgba(124, 58, 237, 0.6));
+            z-index: 1001;
+        }
+
+        .character-container {
+            width: 140px;
+            height: 160px;
+            position: relative;
+            pointer-events: none;
+        }
+
+        /* Speech Bubble */
+        .speech-bubble {
+            position: absolute;
+            top: -55px;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px) scale(0.8);
+            background: linear-gradient(135deg, #ffffff, #f0f4ff);
+            color: #030014;
+            padding: 10px 18px;
+            border-radius: 24px 24px 4px 24px;
+            font-weight: 700;
+            font-size: 12px;
+            opacity: 0;
+            white-space: nowrap;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            font-family: 'Outfit', sans-serif;
+            max-width: 220px;
+            text-align: center;
+            z-index: 10;
+        }
+        .speech-bubble.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+        }
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0; height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 12px solid #ffffff;
+        }
+
+        .emotion-indicator {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 22px;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .drag-handle {
+            position: absolute;
+            bottom: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 10px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        .character-wrapper:hover .drag-handle { opacity: 1; }
+
+        /* Theme Toggle */
+        .theme-toggle-btn {
+            position: fixed;
+            top: 20px;
+            right: 80px;
+            z-index: 100;
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-base);
+            font-size: 18px;
+        }
+        .theme-toggle-btn:hover {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.25);
+        }
+
+        /* Social Buttons */
+        .social-btn {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: var(--text-secondary);
+        }
+        .social-btn:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
+        }
+
+        /* Toast */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 14px 20px;
+            color: var(--text-primary);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideInRight 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        @keyframes slideInRight {
+            from { transform: translateX(120%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Celebration */
+        .celebration-particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1500;
+            animation: celebrateBurst 1.5s ease-out forwards;
+        }
+        @keyframes celebrateBurst {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--cx), var(--cy)) scale(0); opacity: 0; }
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .character-container { width: 100px; height: 120px; }
+            .character-wrapper { width: 100px; }
+            .speech-bubble { font-size: 10px; padding: 8px 12px; max-width: 160px; }
+            .premium-glass { padding: 24px 16px; border-radius: 24px; }
+            .theme-toggle-btn { top: 10px; right: 60px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .mesh-bg { animation: none !important; }
+            .celebration-particle { animation: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <a href="#main-content" class="skip-link">Skip to login form</a>
+
+    <!-- Theme Toggle -->
+    <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle dark/light mode" title="Toggle theme">
+        <i class="fas fa-moon" id="themeIcon"></i>
+    </button>
+
+    <!-- Background -->
+    <div class="mesh-bg"></div>
+    <canvas id="particle-canvas"></canvas>
+    
+    <!-- Toast Container -->
+    <div id="toast-container" aria-live="polite"></div>
+
+    <!-- 🎭 DRAGGABLE CHARACTER - NAVA -->
+    <div class="character-wrapper" id="character-wrapper" aria-label="Draggable AI companion Nava" role="img">
+        <div class="drag-handle" aria-hidden="true">✦ Drag me ✦</div>
+        <div class="character-container" id="character-container">
+            <div class="speech-bubble" id="speechBubble"></div>
+            <div class="emotion-indicator" id="emotionIndicator"></div>
+            
+            <svg id="nava-svg" viewBox="0 0 200 220" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#ffffff"/>
+                        <stop offset="50%" stop-color="#f0e6ff"/>
+                        <stop offset="100%" stop-color="#e8d5ff"/>
+                    </linearGradient>
+                    <linearGradient id="faceScreen" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="#0a0a1a"/>
+                        <stop offset="100%" stop-color="#1a1040"/>
+                    </linearGradient>
+                    <linearGradient id="tilakGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#ff9933"/>
+                        <stop offset="50%" stop-color="#ff007f"/>
+                        <stop offset="100%" stop-color="#ff9933"/>
+                    </linearGradient>
+                    <radialGradient id="auraGrad">
+                        <stop offset="0%" stop-color="#ffd700" stop-opacity="0.3"/>
+                        <stop offset="100%" stop-color="transparent"/>
+                    </radialGradient>
+                    <filter id="softGlow">
+                        <feGaussianBlur stdDeviation="3" result="blur"/>
+                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                    <filter id="bodyShadow">
+                        <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#000" flood-opacity="0.3"/>
+                    </filter>
+                </defs>
+
+                <!-- Aura -->
+                <circle cx="100" cy="105" r="85" fill="url(#auraGrad)" opacity="0.5" id="aura-ring">
+                    <animate attributeName="r" values="82;92;82" dur="4s" repeatCount="indefinite"/>
+                    <animate attributeName="opacity" values="0.4;0.6;0.4" dur="4s" repeatCount="indefinite"/>
+                </circle>
+
+                <!-- Body Group -->
+                <g id="body-group" filter="url(#bodyShadow)">
+                    <ellipse cx="82" cy="178" rx="22" ry="12" fill="#d4c5e8" id="foot-left"/>
+                    <ellipse cx="118" cy="178" rx="22" ry="12" fill="#d4c5e8" id="foot-right"/>
+
+                    <ellipse cx="100" cy="118" rx="52" ry="60" fill="url(#bodyGrad)" id="main-body"/>
+                    <ellipse cx="100" cy="118" rx="47" ry="55" fill="none" stroke="#ffd700" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.4"/>
+                    
+                    <path d="M 87 63 Q 100 53 113 63 L 108 70 Q 100 66 92 70 Z" fill="url(#tilakGrad)" opacity="0.7" id="tilak"/>
+
+                    <ellipse cx="100" cy="108" rx="36" ry="30" fill="url(#faceScreen)" id="face-screen"/>
+                    <ellipse cx="100" cy="108" rx="34" ry="28" fill="none" stroke="#7c3aed" stroke-width="1" opacity="0.3"/>
+
+                    <g id="eyes-group">
+                        <g id="eye-left">
+                            <ellipse cx="86" cy="103" rx="10" ry="12" fill="#1a1040" stroke="#2d1b69" stroke-width="1"/>
+                            <ellipse id="pupil-left" cx="86" cy="103" rx="4" ry="5" fill="#00f0ff" filter="url(#softGlow)"/>
+                            <ellipse id="pupil-core-left" cx="86" cy="103" rx="2" ry="2.5" fill="#ffffff"/>
+                            <path id="eyelid-left" d="M 74 95 Q 86 91 98 95 L 98 103 L 74 103 Z" fill="#0a0a1a" opacity="0.5"/>
+                        </g>
+
+                        <g id="eye-right">
+                            <ellipse cx="114" cy="103" rx="10" ry="12" fill="#1a1040" stroke="#2d1b69" stroke-width="1"/>
+                            <ellipse id="pupil-right" cx="114" cy="103" rx="4" ry="5" fill="#00f0ff" filter="url(#softGlow)"/>
+                            <ellipse id="pupil-core-right" cx="114" cy="103" rx="2" ry="2.5" fill="#ffffff"/>
+                            <path id="eyelid-right" d="M 102 95 Q 114 91 126 95 L 126 103 L 102 103 Z" fill="#0a0a1a" opacity="0.5"/>
+                        </g>
+                    </g>
+
+                    <path id="eyebrow-left" d="M 75 89 Q 86 83 97 89" fill="none" stroke="#ffd700" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+                    <path id="eyebrow-right" d="M 103 89 Q 114 83 125 89" fill="none" stroke="#ffd700" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+
+                    <ellipse cx="100" cy="113" rx="4" ry="3" fill="#2d1b69" opacity="0.4" id="nose"/>
+                    <path id="mouth" d="M 93 120 Q 100 124 107 120" fill="none" stroke="#00f0ff" stroke-width="2.5" stroke-linecap="round" filter="url(#softGlow)"/>
+
+                    <ellipse cx="80" cy="115" rx="7" ry="4" fill="#ff007f" opacity="0.12" id="cheek-left"/>
+                    <ellipse cx="120" cy="115" rx="7" ry="4" fill="#ff007f" opacity="0.12" id="cheek-right"/>
+
+                    <circle cx="100" cy="91" r="2.5" fill="#ff007f" id="bindi" filter="url(#softGlow)"/>
+                </g>
+
+                <g id="arms-group">
+                    <g id="arm-left">
+                        <path d="M 50 113 Q 28 98 32 83" fill="none" stroke="url(#bodyGrad)" stroke-width="11" stroke-linecap="round" filter="url(#bodyShadow)"/>
+                        <circle cx="32" cy="81" r="9" fill="#ffffff" id="hand-left"/>
+                        <circle cx="32" cy="81" r="5" fill="#f0e6ff"/>
+                        <circle cx="34" cy="88" r="7" fill="none" stroke="#ffd700" stroke-width="1.5" opacity="0.5"/>
+                        <circle cx="35" cy="93" r="6" fill="none" stroke="#ff9933" stroke-width="1.5" opacity="0.4"/>
+                    </g>
+
+                    <g id="arm-right">
+                        <path d="M 150 113 Q 172 98 168 83" fill="none" stroke="url(#bodyGrad)" stroke-width="11" stroke-linecap="round" filter="url(#bodyShadow)"/>
+                        <circle cx="168" cy="81" r="9" fill="#ffffff" id="hand-right"/>
+                        <circle cx="168" cy="81" r="5" fill="#f0e6ff"/>
+                        <circle cx="166" cy="88" r="7" fill="none" stroke="#ffd700" stroke-width="1.5" opacity="0.5"/>
+                        <circle cx="165" cy="93" r="6" fill="none" stroke="#ff9933" stroke-width="1.5" opacity="0.4"/>
+                    </g>
+                </g>
+
+                <g id="crown">
+                    <path d="M 82 58 L 87 43 L 94 53 L 100 33 L 106 53 L 113 43 L 118 58" fill="none" stroke="#ffd700" stroke-width="2.5" stroke-linejoin="round" filter="url(#softGlow)"/>
+                    <circle cx="100" cy="31" r="4" fill="#ffd700" filter="url(#softGlow)">
+                        <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite"/>
+                    </circle>
+                    <circle cx="87" cy="45" r="1.5" fill="#ff007f" filter="url(#softGlow)"/>
+                    <circle cx="113" cy="45" r="1.5" fill="#ff007f" filter="url(#softGlow)"/>
+                </g>
+
+                <ellipse cx="78" cy="182" rx="13" ry="3" fill="none" stroke="#ffd700" stroke-width="1.5" opacity="0.4"/>
+                <ellipse cx="122" cy="182" rx="13" ry="3" fill="none" stroke="#ffd700" stroke-width="1.5" opacity="0.4"/>
+
+                <circle cx="48" cy="55" r="1.5" fill="#ffd700" opacity="0.5">
+                    <animate attributeName="opacity" values="0.5;0;0.5" dur="3s" repeatCount="indefinite"/>
+                    <animate attributeName="cy" values="55;40;55" dur="3s" repeatCount="indefinite"/>
+                </circle>
+                <circle cx="152" cy="65" r="1.5" fill="#ffd700" opacity="0.5">
+                    <animate attributeName="opacity" values="0;0.5;0" dur="2.5s" repeatCount="indefinite"/>
+                    <animate attributeName="cy" values="65;50;65" dur="2.5s" repeatCount="indefinite"/>
+                </circle>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main id="main-content" class="relative z-10 w-full max-w-md mx-4">
+        
+        <!-- Logo Section -->
+        <div class="text-center mb-8">
+            <a href="/" style="text-decoration: none; cursor: pointer;">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-purple-600 mb-4 shadow-[0_0_25px_rgba(0,240,255,0.4)] hover:shadow-[0_0_35px_rgba(0,240,255,0.6)] transition-all">
+                    <i class="fas fa-landmark text-2xl text-white" aria-hidden="true"></i>
+                </div>
+                <h1 class="text-3xl font-bold font-['Space_Grotesk'] bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent hover:opacity-80 transition-opacity">
+                    SICRSense
+                </h1>
+            </a>
+            <p class="text-gray-400 text-sm mt-1">Enterprise IFRS 9 Platform</p>
+        </div>
+
+        <!-- Login Card -->
+        <div class="premium-glass p-6 sm:p-8">
+            
+            <!-- Tabs -->
+            <div class="flex mb-8 bg-black/20 rounded-2xl p-1">
+                <button id="login-tab" class="flex-1 py-3 px-6 rounded-xl font-semibold transition-all duration-300 bg-gradient-to-r from-cyan-400 to-purple-600 text-white" aria-selected="true">
+                    Sign In
+                </button>
+                <a href="/signup" class="flex-1 py-3 px-6 rounded-xl font-semibold transition-all duration-300 text-gray-400 hover:text-white text-center" style="text-decoration: none;">
+                    Sign Up
+                </a>
+            </div>
+            
+            <!-- Login Form -->
+            <form id="login-form" class="space-y-5" novalidate>
+                <div class="input-group">
+                    <input type="email" id="login-email" class="input-peer nova-trigger" placeholder="" required data-nova="track" autocomplete="email">
+                    <label for="login-email" class="input-label">Email Address</label>
+                    <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" aria-hidden="true" style="display: none;"></i>
+                </div>
+
+                <div class="input-group">
+                    <input type="password" id="login-password" class="input-peer nova-trigger pr-12" placeholder="" required data-nova="hide" autocomplete="current-password">
+                    <label for="login-password" class="input-label">Password</label>
+                    <button type="button" class="absolute right-4 top-4 text-gray-400 hover:text-cyan-400 transition-colors z-10 bg-transparent border-0 cursor-pointer" onclick="togglePassword('login-password', this)" aria-label="Toggle password visibility">
+                        <i class="fas fa-eye" aria-hidden="true"></i>
+                    </button>
+                </div>
+
+                <div class="flex items-center justify-between text-sm">
+                    <label class="flex items-center text-gray-400 cursor-pointer">
+                        <input type="checkbox" class="mr-2 w-4 h-4 rounded border-gray-600 bg-transparent checked:bg-cyan-400 focus:ring-cyan-400" id="remember-me">
+                        <span>Remember me</span>
+                    </label>
+                    <button type="button" onclick="showForgotPassword()" class="text-cyan-400 hover:text-cyan-300 transition-colors font-medium">Forgot password?</button>
+                </div>
+
+                <button type="submit" class="btn-glow">
+                    <span id="login-btn-text">Sign In</span>
+                    <span id="login-spinner" class="spinner hidden"></span>
+                </button>
+
+                <!-- 2FA Modal -->
+                <div id="2fa-modal" class="hidden mt-4 p-5 bg-black/20 rounded-2xl border border-gray-700">
+                    <label for="2fa-code" class="block text-sm font-medium text-gray-300 mb-3">Two-Factor Authentication Code</label>
+                    <input type="text" id="2fa-code" class="code-input" placeholder="000000" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
+                    <button type="button" onclick="verify2FA()" class="btn-glow mt-4">Verify Code</button>
+                    <button type="button" onclick="cancel2FA()" class="w-full text-center text-gray-400 hover:text-gray-300 transition-colors text-sm mt-3">Cancel</button>
+                </div>
+            </form>
+
+            <!-- Forgot Password Form -->
+            <form id="forgot-form" class="hidden space-y-5" novalidate>
+                <div class="text-center">
+                    <h3 class="text-xl font-bold mb-2">Reset Password</h3>
+                    <p class="text-gray-400 text-sm">Enter your email to receive reset instructions</p>
+                </div>
+
+                <div class="input-group">
+                    <input type="email" id="forgot-email" class="input-peer nova-trigger" placeholder="you@company.com" required data-nova="track" autocomplete="email">
+                    <label for="forgot-email" class="input-label">Email Address</label>
+                </div>
+
+                <button type="submit" class="btn-glow">
+                    <span id="forgot-btn-text">Send Reset Link</span>
+                    <span id="forgot-spinner" class="spinner hidden"></span>
+                </button>
+                <button type="button" onclick="showLogin()" class="w-full text-center text-cyan-400 hover:text-cyan-300 transition-colors text-sm font-medium py-2">
+                    <i class="fas fa-arrow-left mr-2" aria-hidden="true"></i>Back to Login
+                </button>
+            </form>
+
+            <!-- Divider -->
+            <div class="relative my-8" aria-hidden="true">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-700"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-4 bg-[#0a0a1a] text-gray-400">or continue with</span>
+                </div>
+            </div>
+
+            <!-- Social Login -->
+            <div class="grid grid-cols-3 gap-4">
+                <button class="social-btn" aria-label="Sign in with Google" onclick="socialLogin('google')">
+                    <i class="fab fa-google"></i>
+                </button>
+                <button class="social-btn" aria-label="Sign in with Microsoft" onclick="socialLogin('microsoft')">
+                    <i class="fab fa-microsoft"></i>
+                </button>
+                <button class="social-btn" aria-label="Sign in with GitHub" onclick="socialLogin('github')">
+                    <i class="fab fa-github"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <p class="text-center text-gray-500 text-sm mt-8">
+            <a href="/" class="text-gray-400 hover:text-cyan-400 transition-colors">Back to Home</a> • &copy; 2026 SICRSense. Enterprise-Grade Security
+        </p>
+    </main>
+
+    <script>
+        // ==========================================
+        // THEME MANAGEMENT
+        // ==========================================
+        (function() {
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = document.getElementById('themeIcon');
+            let isDark = true;
+
+            function setTheme(dark) {
+                if (dark) {
+                    document.body.classList.remove('light');
+                    if (themeIcon) themeIcon.className = 'fas fa-moon';
+                } else {
+                    document.body.classList.add('light');
+                    if (themeIcon) themeIcon.className = 'fas fa-sun';
+                }
+                try { localStorage.setItem('sicrsense-theme', dark ? 'dark' : 'light'); } catch(e) {}
+                isDark = dark;
+                console.log('Theme set to:', dark ? 'dark' : 'light');
+            }
+
+            try {
+                const saved = localStorage.getItem('sicrsense-theme');
+                if (saved === 'light') setTheme(false);
+            } catch(e) {}
+
+            if (themeToggle) {
+                themeToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setTheme(!isDark);
+                });
+            }
+        })();
+
+        // ==========================================
+        // TOAST SYSTEM
+        // ==========================================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            
+            const icons = {
+                success: 'fa-check-circle text-green-400',
+                error: 'fa-exclamation-circle text-red-400',
+                info: 'fa-info-circle text-cyan-400'
+            };
+            
+            toast.innerHTML = `<i class="fas ${icons[type] || icons.info}" aria-hidden="true"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.transform = 'translateX(120%)';
+                toast.style.opacity = '0';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        // ==========================================
+        // PARTICLE BACKGROUND
+        // ==========================================
+        (function() {
+            const canvas = document.getElementById('particle-canvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d', { alpha: true });
+            let width, height, particles = [];
+            let animationId;
+
+            function initCanvas() {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+                particles = [];
+                const count = window.innerWidth > 768 ? 50 : 25;
+                for(let i = 0; i < count; i++) {
+                    particles.push({
+                        x: Math.random() * width,
+                        y: Math.random() * height,
+                        size: Math.random() * 2 + 0.5,
+                        vx: (Math.random() - 0.5) * 0.3,
+                        vy: (Math.random() - 0.5) * 0.3,
+                        alpha: Math.random() * 0.4 + 0.1,
+                        color: Math.random() > 0.5 ? '0, 240, 255' : '124, 58, 237'
+                    });
+                }
+            }
+
+            function drawParticles() {
+                animationId = requestAnimationFrame(drawParticles);
+                ctx.clearRect(0, 0, width, height);
+                
+                particles.forEach(p => {
+                    p.x += p.vx; p.y += p.vy;
+                    if(p.x < -10) p.x = width + 10;
+                    if(p.x > width + 10) p.x = -10;
+                    if(p.y < -10) p.y = height + 10;
+                    if(p.y > height + 10) p.y = -10;
+                    
+                    particles.forEach(p2 => {
+                        const dx = p.x - p2.x;
+                        const dy = p.y - p2.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if(dist < 100) {
+                            ctx.beginPath();
+                            ctx.moveTo(p.x, p.y);
+                            ctx.lineTo(p2.x, p2.y);
+                            ctx.strokeStyle = `rgba(${p.color}, ${0.06 * (1 - dist/100)})`;
+                            ctx.stroke();
+                        }
+                    });
+                    
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(${p.color}, ${p.alpha})`;
+                    ctx.fill();
+                });
+            }
+            
+            initCanvas(); drawParticles();
+            
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(initCanvas, 150);
+            });
+            
+            window.addEventListener('beforeunload', () => {
+                if(animationId) cancelAnimationFrame(animationId);
+            });
+        })();
+
+        // ==========================================
+        // NAVA CHARACTER
+        // ==========================================
+        const Nava = {
+            pupilLeft: null,
+            pupilRight: null,
+            pupilCoreLeft: null,
+            pupilCoreRight: null,
+            eyelidLeft: null,
+            eyelidRight: null,
+            eyebrowLeft: null,
+            eyebrowRight: null,
+            mouth: null,
+            cheekLeft: null,
+            cheekRight: null,
+            handLeft: null,
+            handRight: null,
+            bodyGroup: null,
+            crown: null,
+            speechBubble: null,
+            emotionIndicator: null,
+            
+            currentRasa: 'shanta',
+            mouseX: 0,
+            mouseY: 0,
+            isDragging: false,
+            speechTimeout: null,
+            blinkTimeout: null,
+            idleTimeout: null,
+
+            rasas: {
+                shanta: {
+                    icon: '🧘', color: '#a0a0b0',
+                    mouth: 'M 93 120 Q 100 124 107 120',
+                    eyebrows: { left: 'M 75 89 Q 86 85 97 89', right: 'M 103 89 Q 114 85 125 89' },
+                    cheeks: 0.12
+                },
+                hasya: {
+                    icon: '😊', color: '#ffd700',
+                    mouth: 'M 89 117 Q 100 130 111 117',
+                    eyebrows: { left: 'M 74 87 Q 86 81 98 87', right: 'M 102 87 Q 114 81 126 87' },
+                    cheeks: 0.3
+                },
+                adbhuta: {
+                    icon: '😮', color: '#00f0ff',
+                    mouth: 'M 94 117 Q 100 113 106 117 Q 100 130 94 117',
+                    eyebrows: { left: 'M 74 85 Q 86 79 98 85', right: 'M 102 85 Q 114 79 126 85' },
+                    cheeks: 0.1
+                },
+                shringara: {
+                    icon: '🥰', color: '#ff007f',
+                    mouth: 'M 92 119 Q 100 126 108 119',
+                    eyebrows: { left: 'M 75 87 Q 86 81 97 87', right: 'M 103 87 Q 114 81 125 87' },
+                    cheeks: 0.35
+                },
+                karuna: {
+                    icon: '🥺', color: '#7c3aed',
+                    mouth: 'M 94 121 Q 100 117 106 121',
+                    eyebrows: { left: 'M 75 87 Q 86 91 97 87', right: 'M 103 87 Q 114 91 125 87' },
+                    cheeks: 0.18
+                },
+                raudra: {
+                    icon: '😤', color: '#ef4444',
+                    mouth: 'M 93 121 Q 100 118 107 121',
+                    eyebrows: { left: 'M 75 87 Q 86 91 97 83', right: 'M 103 83 Q 114 91 125 87' },
+                    cheeks: 0.22
+                },
+                bhayanaka: {
+                    icon: '😰', color: '#f59e0b',
+                    mouth: 'M 94 118 Q 100 111 106 118',
+                    eyebrows: { left: 'M 75 87 Q 86 93 97 87', right: 'M 103 87 Q 114 93 125 87' },
+                    cheeks: 0.05
+                },
+                bibhatsa: {
+                    icon: '😖', color: '#84cc16',
+                    mouth: 'M 93 121 Q 97 117 100 121 Q 103 117 107 121',
+                    eyebrows: { left: 'M 75 87 Q 86 93 97 85', right: 'M 103 85 Q 114 93 125 87' },
+                    cheeks: 0.08
+                },
+                vira: {
+                    icon: '💪', color: '#ff9933',
+                    mouth: 'M 91 119 Q 100 123 109 119',
+                    eyebrows: { left: 'M 75 85 Q 86 79 97 85', right: 'M 103 85 Q 114 79 125 85' },
+                    cheeks: 0.2
+                }
+            },
+
+            init() {
+                this.pupilLeft = document.getElementById('pupil-left');
+                this.pupilRight = document.getElementById('pupil-right');
+                this.pupilCoreLeft = document.getElementById('pupil-core-left');
+                this.pupilCoreRight = document.getElementById('pupil-core-right');
+                this.eyelidLeft = document.getElementById('eyelid-left');
+                this.eyelidRight = document.getElementById('eyelid-right');
+                this.eyebrowLeft = document.getElementById('eyebrow-left');
+                this.eyebrowRight = document.getElementById('eyebrow-right');
+                this.mouth = document.getElementById('mouth');
+                this.cheekLeft = document.getElementById('cheek-left');
+                this.cheekRight = document.getElementById('cheek-right');
+                this.handLeft = document.getElementById('hand-left');
+                this.handRight = document.getElementById('hand-right');
+                this.bodyGroup = document.getElementById('body-group');
+                this.crown = document.getElementById('crown');
+                this.speechBubble = document.getElementById('speechBubble');
+                this.emotionIndicator = document.getElementById('emotionIndicator');
+
+                if (!this.bodyGroup) {
+                    console.error('Nava: body-group not found');
+                    return;
+                }
+
+                gsap.to(this.bodyGroup, { 
+                    y: -6, duration: 2.5, repeat: -1, yoyo: true, 
+                    ease: "sine.inOut" 
+                });
+                
+                if (this.crown) {
+                    gsap.to(this.crown, {
+                        y: -2, duration: 1.8, repeat: -1, yoyo: true,
+                        ease: "sine.inOut", delay: 0.3
+                    });
+                }
+                
+                if (this.handLeft && this.handRight) {
+                    gsap.to([this.handLeft, this.handRight], {
+                        y: '+=5', duration: 2, repeat: -1, yoyo: true,
+                        ease: "sine.inOut", delay: 0.5
+                    });
+                }
+
+                this.startBlinking();
+                this.startIdleAnimations();
+                this.trackMouseLoop();
+                this.bindInputTriggers();
+                
+                setTimeout(() => {
+                    this.setRasa('shanta', 'Welcome back! Ready to login? 🧘✨', 4000);
+                }, 500);
+                
+                console.log('Nava initialized');
+            },
+
+            setRasa(rasa, message, duration) {
+                const data = this.rasas[rasa];
+                if (!data) return;
+                
+                this.currentRasa = rasa;
+
+                if (this.mouth) {
+                    gsap.to(this.mouth, { attr: { d: data.mouth }, duration: 0.4, ease: "power2.out" });
+                }
+                
+                if (this.eyebrowLeft) {
+                    gsap.to(this.eyebrowLeft, { attr: { d: data.eyebrows.left }, duration: 0.4, ease: "power2.out" });
+                }
+                if (this.eyebrowRight) {
+                    gsap.to(this.eyebrowRight, { attr: { d: data.eyebrows.right }, duration: 0.4, ease: "power2.out" });
+                }
+                
+                if (this.cheekLeft && this.cheekRight) {
+                    gsap.to([this.cheekLeft, this.cheekRight], { attr: { opacity: data.cheeks }, duration: 0.4 });
+                }
+
+                if (this.emotionIndicator) {
+                    this.emotionIndicator.textContent = data.icon;
+                    this.emotionIndicator.style.color = data.color;
+                    gsap.from(this.emotionIndicator, { scale: 0, duration: 0.5, ease: "back.out(2)" });
+                }
+
+                if (message) this.say(message, duration);
+                this.playRasaAnimation(rasa);
+            },
+
+            playRasaAnimation(rasa) {
+                if (!this.handLeft || !this.handRight) return;
+                
+                gsap.to([this.handLeft, this.handRight], { x: 0, y: 0, rotation: 0, duration: 0.5, ease: "power2.out" });
+
+                switch(rasa) {
+                    case 'hasya':
+                        if (this.bodyGroup) {
+                            gsap.to(this.bodyGroup, { y: -18, duration: 0.3, yoyo: true, repeat: 2, ease: "power1.out" });
+                        }
+                        gsap.to(this.handLeft, { x: 12, y: -8, duration: 0.3, delay: 0.2 });
+                        gsap.to(this.handRight, { x: -12, y: -8, duration: 0.3, delay: 0.2 });
+                        break;
+                    case 'adbhuta':
+                        gsap.to(this.handLeft, { x: -12, y: -25, duration: 0.4, ease: "back.out(1.5)" });
+                        gsap.to(this.handRight, { x: 12, y: -25, duration: 0.4, ease: "back.out(1.5)" });
+                        break;
+                    case 'shringara':
+                        gsap.to(this.handLeft, { x: 8, y: -4, duration: 0.5, ease: "power2.out" });
+                        gsap.to(this.handRight, { x: -8, y: -4, duration: 0.5, ease: "power2.out" });
+                        break;
+                    case 'bhayanaka':
+                        gsap.to(this.handLeft, { x: 22, y: -12, duration: 0.3, ease: "back.out(1.2)" });
+                        gsap.to(this.handRight, { x: -22, y: -12, duration: 0.3, ease: "back.out(1.2)" });
+                        break;
+                }
+            },
+
+            say(text, duration) {
+                if (!this.speechBubble) return;
+                this.speechBubble.textContent = text;
+                this.speechBubble.classList.add('show');
+                
+                if (this.speechTimeout) clearTimeout(this.speechTimeout);
+                
+                if (duration) {
+                    this.speechTimeout = setTimeout(() => {
+                        this.speechBubble.classList.remove('show');
+                    }, duration);
+                }
+            },
+
+            startBlinking() {
+                const blink = () => {
+                    if (!this.isDragging && this.eyelidLeft && this.eyelidRight) {
+                        gsap.to([this.eyelidLeft, this.eyelidRight], {
+                            attr: { d: 'M 74 99 Q 86 95 98 99 L 98 107 L 74 107 Z' },
+                            duration: 0.08, yoyo: true, repeat: 1
+                        });
+                    }
+                    this.blinkTimeout = setTimeout(blink, Math.random() * 3000 + 2000);
+                };
+                this.blinkTimeout = setTimeout(blink, 2000);
+            },
+
+            startIdleAnimations() {
+                const idleCycle = () => {
+                    if (this.isDragging) {
+                        this.idleTimeout = setTimeout(idleCycle, 2000);
+                        return;
+                    }
+                    
+                    if (Math.random() > 0.7) {
+                        const rasas = ['adbhuta', 'shringara', 'shanta'];
+                        const randomRasa = rasas[Math.floor(Math.random() * rasas.length)];
+                        const messages = {
+                            adbhuta: 'Ready to analyze risks? ✨',
+                            shringara: 'I missed you! 💖',
+                            shanta: 'Secure login awaits... 🧘'
+                        };
+                        this.setRasa(randomRasa, messages[randomRasa], 3000);
+                    }
+                    
+                    this.idleTimeout = setTimeout(idleCycle, Math.random() * 6000 + 5000);
+                };
+                this.idleTimeout = setTimeout(idleCycle, 6000);
+            },
+
+            trackMouseLoop() {
+                requestAnimationFrame(() => this.trackMouseLoop());
+                
+                if (this.isDragging || !this.pupilLeft || !this.pupilRight) return;
+                
+                const svgEl = document.getElementById('nava-svg');
+                if (!svgEl) return;
+                
+                const svgRect = svgEl.getBoundingClientRect();
+                const centerX = svgRect.left + svgRect.width / 2;
+                const centerY = svgRect.top + svgRect.height / 2;
+                
+                const dx = this.mouseX - centerX;
+                const dy = this.mouseY - centerY;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                const maxEyeMove = 4;
+                const eyeDist = Math.min(dist * 0.01, maxEyeMove);
+                const angle = Math.atan2(dy, dx);
+                
+                const ex = Math.cos(angle) * eyeDist;
+                const ey = Math.sin(angle) * eyeDist;
+                
+                gsap.to([this.pupilLeft, this.pupilRight], { cx: ex, cy: ey, duration: 0.15 });
+                if (this.pupilCoreLeft && this.pupilCoreRight) {
+                    gsap.to([this.pupilCoreLeft, this.pupilCoreRight], { cx: ex, cy: ey, duration: 0.15 });
+                }
+            },
+
+            bindInputTriggers() {
+                document.querySelectorAll('.nova-trigger').forEach(input => {
+                    input.addEventListener('focus', (e) => {
+                        const behavior = e.target.getAttribute('data-nova');
+                        if (behavior === 'hide') {
+                            this.setRasa('bhayanaka', 'I\'m not looking! 🙈', 2000);
+                        } else {
+                            this.setRasa('adbhuta', 'Type your credentials! 👀', 2500);
+                        }
+                    });
+                    
+                    input.addEventListener('blur', () => {
+                        if (this.currentRasa === 'bhayanaka') {
+                            this.setRasa('shanta', 'Safe! 😌', 2000);
+                        }
+                    });
+                });
+            }
+        };
+
+        // Initialize Nava
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => Nava.init());
+        } else {
+            Nava.init();
+        }
+
+        // Mouse tracking
+        document.addEventListener('mousemove', (e) => {
+            Nava.mouseX = e.clientX;
+            Nava.mouseY = e.clientY;
+        }, { passive: true });
+
+        // ==========================================
+        // DRAGGABLE CHARACTER
+        // ==========================================
+        (function() {
+            const wrapper = document.getElementById('character-wrapper');
+            if (!wrapper) return;
+            
+            wrapper.style.position = 'fixed';
+            wrapper.style.top = '20px';
+            wrapper.style.right = '20px';
+            wrapper.style.left = 'auto';
+            wrapper.style.bottom = 'auto';
+            wrapper.style.zIndex = '1000';
+            
+            let isDragging = false;
+            let startX, startY, initialLeft, initialTop;
+            
+            wrapper.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                isDragging = true;
+                Nava.isDragging = true;
+                wrapper.classList.add('dragging');
+                Nava.setRasa('vira', 'Wheee! Anywhere you want! 🎪', 2000);
+                
+                startX = e.clientX;
+                startY = e.clientY;
+                const rect = wrapper.getBoundingClientRect();
+                initialLeft = rect.left;
+                initialTop = rect.top;
+            });
+            
+            wrapper.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                isDragging = true;
+                Nava.isDragging = true;
+                wrapper.classList.add('dragging');
+                Nava.setRasa('hasya', 'Adventure time! 🌟', 2000);
+                
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                const rect = wrapper.getBoundingClientRect();
+                initialLeft = rect.left;
+                initialTop = rect.top;
+            }, { passive: false });
+            
+            function onMove(clientX, clientY) {
+                if (!isDragging) return;
+                
+                const dx = clientX - startX;
+                const dy = clientY - startY;
+                
+                let newLeft = initialLeft + dx;
+                let newTop = initialTop + dy;
+                
+                const maxLeft = window.innerWidth - wrapper.offsetWidth - 10;
+                const maxTop = window.innerHeight - wrapper.offsetHeight - 10;
+                
+                newLeft = Math.max(10, Math.min(maxLeft, newLeft));
+                newTop = Math.max(10, Math.min(maxTop, newTop));
+                
+                wrapper.style.left = newLeft + 'px';
+                wrapper.style.top = newTop + 'px';
+                wrapper.style.right = 'auto';
+                wrapper.style.bottom = 'auto';
+            }
+            
+            document.addEventListener('mousemove', function(e) {
+                onMove(e.clientX, e.clientY);
+            });
+            
+            document.addEventListener('touchmove', function(e) {
+                if (isDragging) {
+                    e.preventDefault();
+                    onMove(e.touches[0].clientX, e.touches[0].clientY);
+                }
+            }, { passive: false });
+            
+            function onEnd() {
+                if (isDragging) {
+                    isDragging = false;
+                    Nava.isDragging = false;
+                    wrapper.classList.remove('dragging');
+                    Nava.setRasa('shanta', 'Seems Nice! 😊', 2500);
+                    
+                    try {
+                        localStorage.setItem('nava-position', JSON.stringify({
+                            left: wrapper.style.left,
+                            top: wrapper.style.top
+                        }));
+                    } catch(e) {}
+                }
+            }
+            
+            document.addEventListener('mouseup', onEnd);
+            document.addEventListener('touchend', onEnd);
+            
+            try {
+                const saved = localStorage.getItem('nava-position');
+                if (saved) {
+                    const pos = JSON.parse(saved);
+                    wrapper.style.left = pos.left;
+                    wrapper.style.top = pos.top;
+                    wrapper.style.right = 'auto';
+                    wrapper.style.bottom = 'auto';
+                }
+            } catch(e) {}
+            
+            wrapper.addEventListener('dblclick', function() {
+                wrapper.style.top = '20px';
+                wrapper.style.right = '20px';
+                wrapper.style.left = 'auto';
+                wrapper.style.bottom = 'auto';
+                Nava.setRasa('hasya', 'Back home! 🏠', 2000);
+                try { localStorage.removeItem('nava-position'); } catch(e) {}
+            });
+        })();
+
+        // ==========================================
+        // FORM LOGIC
+        // ==========================================
+        const loginForm = document.getElementById('login-form');
+        const forgotForm = document.getElementById('forgot-form');
+
+        window.showForgotPassword = function() {
+            gsap.to(loginForm, {
+                opacity: 0, y: 15, duration: 0.3, display: 'none',
+                onComplete: () => {
+                    forgotForm.classList.remove('hidden');
+                    gsap.from(forgotForm, { opacity: 0, y: 15, duration: 0.3, ease: "power3.out" });
+                }
+            });
+            Nava.setRasa('karuna', 'Forgot your password? I\'ll help! 🥺', 3000);
+        };
+
+        window.showLogin = function() {
+            gsap.to(forgotForm, {
+                opacity: 0, y: 15, duration: 0.3, display: 'none',
+                onComplete: () => {
+                    loginForm.classList.remove('hidden');
+                    gsap.from(loginForm, { opacity: 0, y: 15, duration: 0.3, ease: "power3.out" });
+                }
+            });
+            Nava.setRasa('shanta', 'Back to login!', 2500);
+        };
+
+        window.togglePassword = function(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            
+            const icon = btn.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (icon) { icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
+                Nava.setRasa('adbhuta', 'Checking the password? 👀', 2000);
+            } else {
+                input.type = 'password';
+                if (icon) { icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
+                Nava.setRasa('bhayanaka', 'Hiding again! 🙈', 1500);
+            }
+        };
+
+        window.socialLogin = function(provider) {
+            Nava.setRasa('adbhuta', `Logging in with ${provider}... ✨`, 3000);
+            showToast(`Redirecting to ${provider}...`, 'info');
+        };
+
+        // Login submission
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            const btnText = document.getElementById('login-btn-text');
+            const spinner = document.getElementById('login-spinner');
+            const submitBtn = loginForm.querySelector('button[type="submit"]');
+            
+            if (!email || !password) {
+                showToast('Please enter your email and password', 'error');
+                Nava.setRasa('bibhatsa', 'Please fill all fields! 🤔', 3000);
+                return;
+            }
+            
+            btnText.textContent = 'Authenticating...';
+            spinner.classList.remove('hidden');
+            submitBtn.disabled = true;
+            Nava.setRasa('shanta', 'Verifying your identity... 🧘', 2000);
+            
+            try {
+                const response = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ username: email, password })
+                });
+                
+                if (response.status === 403) {
+                    const twoFAHeader = response.headers.get('X-2FA-Required');
+                    if (twoFAHeader) {
+                        document.getElementById('2fa-modal').classList.remove('hidden');
+                        gsap.from('#2fa-modal', { opacity: 0, y: 10, duration: 0.3 });
+                        Nava.setRasa('adbhuta', '2FA required! Check your device 📱', 4000);
+                        showToast('Please enter your 2FA code', 'info');
+                    }
+                } else if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('access_token', data.access_token);
+                    localStorage.setItem('refresh_token', data.refresh_token);
+                    
+                    Nava.setRasa('hasya', 'Login successful! Welcome back! 🎉', 4000);
+                    celebrateWithParticles();
+                    showToast('Login successful! Redirecting...', 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1500);
+                } else {
+                    const data = await response.json();
+                    showToast(data.detail || 'Invalid credentials', 'error');
+                    Nava.setRasa('raudra', 'Wrong credentials! Try again 😤', 3000);
+                    loginForm.classList.add('shake');
+                    setTimeout(() => loginForm.classList.remove('shake'), 500);
+                }
+            } catch (error) {
+                showToast('Network error. Please try again.', 'error');
+                Nava.setRasa('karuna', 'Connection issue... 🥺', 3000);
+            } finally {
+                btnText.textContent = 'Sign In';
+                spinner.classList.add('hidden');
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Forgot password
+        forgotForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('forgot-email').value.trim();
+            const btnText = document.getElementById('forgot-btn-text');
+            const spinner = document.getElementById('forgot-spinner');
+            const submitBtn = forgotForm.querySelector('button[type="submit"]');
+            
+            if (!email) {
+                showToast('Please enter your email', 'error');
+                return;
+            }
+            
+            btnText.textContent = 'Sending...';
+            spinner.classList.remove('hidden');
+            submitBtn.disabled = true;
+            Nava.setRasa('shanta', 'Sending reset link... 🧘', 2000);
+            
+            try {
+                const response = await fetch(`/api/v1/auth/password/reset-request?email=${encodeURIComponent(email)}`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    showToast('Reset link sent to your email', 'success');
+                    Nava.setRasa('hasya', 'Check your inbox! 📧', 4000);
+                    setTimeout(() => showLogin(), 2000);
+                } else {
+                    showToast('Failed to send reset email', 'error');
+                    Nava.setRasa('karuna', 'Email not found... 🥺', 3000);
+                }
+            } catch (error) {
+                showToast('Network error occurred', 'error');
+            } finally {
+                btnText.textContent = 'Send Reset Link';
+                spinner.classList.add('hidden');
+                submitBtn.disabled = false;
+            }
+        });
+
+        // 2FA Verification
+        window.verify2FA = async function() {
+            const code = document.getElementById('2fa-code').value.trim();
+            
+            if (!code || code.length < 6) {
+                showToast('Please enter a valid 2FA code', 'error');
+                return;
+            }
+            
+            Nava.setRasa('shanta', 'Verifying 2FA code... 🧘', 2000);
+            
+            try {
+                const email = document.getElementById('login-email').value.trim();
+                const password = document.getElementById('login-password').value;
+                
+                const formData = new URLSearchParams({ username: email, password });
+                formData.append('two_factor_code', code);
+                
+                const response = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('access_token', data.access_token);
+                    
+                    Nava.setRasa('hasya', '2FA verified! Welcome! 🎉', 4000);
+                    celebrateWithParticles();
+                    showToast('2FA verified successfully!', 'success');
+                    setTimeout(() => window.location.href = '/dashboard', 1500);
+                } else {
+                    showToast('Invalid 2FA code', 'error');
+                    Nava.setRasa('raudra', 'Wrong code! Try again 😤', 3000);
+                }
+            } catch (error) {
+                showToast('Verification failed', 'error');
+            }
+        };
+
+        window.cancel2FA = function() {
+            document.getElementById('2fa-modal').classList.add('hidden');
+            document.getElementById('2fa-code').value = '';
+            Nava.setRasa('shanta', '2FA cancelled 🧘', 2000);
+        };
+
+        // Celebration particles
+        function celebrateWithParticles() {
+            const colors = ['#ffd700', '#ff9933', '#ff007f', '#00f0ff', '#7c3aed', '#10b981', '#ffffff'];
+            
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'celebration-particle';
+                particle.style.left = '50%';
+                particle.style.top = '50%';
+                particle.style.width = (Math.random() * 8 + 4) + 'px';
+                particle.style.height = (Math.random() * 8 + 4) + 'px';
+                particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+                particle.style.setProperty('--cx', (Math.random() - 0.5) * 300 + 'px');
+                particle.style.setProperty('--cy', (Math.random() - 0.5) * 300 + 'px');
+                particle.style.animationDelay = Math.random() * 0.5 + 's';
+                particle.style.pointerEvents = 'none';
+                
+                document.body.appendChild(particle);
+                setTimeout(() => particle.remove(), 2000);
+            }
+        }
+
+        console.log('Login page initialized');
+    </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!-- Footer Component -->
+<footer class="border-t border-white/5 py-6 px-8">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-4 text-sm text-gray-500">
+            <span>&copy; {{ year }} SICRSense</span>
+            <span class="hidden md:inline">•</span>
+            <a href="/privacy" class="hover:text-cyan-400 transition-colors">Privacy</a>
+            <span class="hidden md:inline">•</span>
+            <a href="/terms" class="hover:text-cyan-400 transition-colors">Terms</a>
+            <span class="hidden md:inline">•</span>
+            <a href="/docs" class="hover:text-cyan-400 transition-colors">Documentation</a>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <!-- System Status -->
+            <div class="flex items-center gap-2 text-sm" id="system-status">
+                <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                <span class="text-gray-400">System Operational</span>
+            </div>
+            
+            <!-- Version -->
+            <span class="text-sm text-gray-600">v{{ version }}</span>
+            
+            <!-- Social Links -->
+            <div class="flex items-center gap-3">
+                <a href="#" class="text-gray-500 hover:text-cyan-400 transition-colors" title="Twitter">
+                    <i class="fab fa-twitter"></i>
+                </a>
+                <a href="#" class="text-gray-500 hover:text-cyan-400 transition-colors" title="LinkedIn">
+                    <i class="fab fa-linkedin"></i>
+                </a>
+                <a href="#" class="text-gray-500 hover:text-cyan-400 transition-colors" title="GitHub">
+                    <i class="fab fa-github"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</footer>

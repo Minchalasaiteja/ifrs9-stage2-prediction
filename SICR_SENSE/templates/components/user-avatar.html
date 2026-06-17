@@ -1,0 +1,126 @@
+<!-- User Avatar Component -->
+<div class="relative">
+    <button onclick="toggleUserMenu()" 
+            class="flex items-center gap-3 glass-card p-2 pr-4 rounded-xl hover:border-cyan-400 transition-all group">
+        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-purple-600 flex items-center justify-center flex-shrink-0">
+            <span class="text-white text-xs font-bold" id="avatar-initials">{{ user.initials }}</span>
+        </div>
+        <div class="hidden md:block text-left">
+            <p class="text-sm font-semibold truncate max-w-[100px]" id="avatar-name">{{ user.name }}</p>
+            <p class="text-xs text-gray-500" id="avatar-role">{{ user.role }}</p>
+        </div>
+        <i class="fas fa-chevron-down text-gray-500 text-xs hidden md:block group-hover:text-cyan-400 transition-colors"></i>
+    </button>
+    
+    <!-- User Dropdown Menu -->
+    <div id="user-menu" 
+         class="absolute right-0 mt-2 w-64 glass-card p-2 hidden z-50"
+         onclick="event.stopPropagation()">
+        
+        <!-- User Info -->
+        <div class="p-4 border-b border-white/5">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-purple-600 flex items-center justify-center">
+                    <span class="text-white font-bold text-lg" id="menu-initials">{{ user.initials }}</span>
+                </div>
+                <div>
+                    <p class="font-semibold" id="menu-name">{{ user.name }}</p>
+                    <p class="text-sm text-gray-400" id="menu-email">{{ user.email }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Menu Items -->
+        <div class="py-2">
+            <a href="/profile" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                <i class="fas fa-user w-5"></i>
+                <span>My Profile</span>
+            </a>
+            <a href="/settings" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                <i class="fas fa-cog w-5"></i>
+                <span>Account Settings</span>
+            </a>
+            <a href="/billing" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                <i class="fas fa-credit-card w-5"></i>
+                <span>Billing</span>
+            </a>
+            <a href="/api-keys" class="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                <i class="fas fa-key w-5"></i>
+                <span>API Keys</span>
+            </a>
+        </div>
+        
+        <!-- Theme Toggle -->
+        <div class="px-4 py-2.5 flex items-center justify-between text-sm text-gray-400">
+            <span class="flex items-center gap-3">
+                <i class="fas fa-moon w-5"></i>
+                Dark Mode
+            </span>
+            <label class="toggle-switch">
+                <input type="checkbox" onchange="toggleTheme()" 
+                       {{ 'checked' if theme == 'dark' }}>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        
+        <!-- Logout -->
+        <div class="pt-2 border-t border-white/5">
+            <button onclick="logout()" 
+                    class="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 rounded-lg transition-colors">
+                <i class="fas fa-sign-out-alt w-5"></i>
+                <span>Sign Out</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+
+
+<style>
+.toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    display: inline-block;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.1);
+    transition: 0.3s;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 2px;
+    bottom: 2px;
+    background: #a0a0b0;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+    background: linear-gradient(135deg, #00f0ff, #7c3aed);
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(20px);
+    background: white;
+}
+</style>

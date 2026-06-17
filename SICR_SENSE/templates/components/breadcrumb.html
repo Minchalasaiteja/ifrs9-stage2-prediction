@@ -1,0 +1,67 @@
+<!-- Breadcrumb Component -->
+{% raw %}<!-- Usage: {% include 'components/breadcrumb.html' with items=breadcrumb_items %} -->{% endraw %}
+
+<nav aria-label="Breadcrumb" class="mb-6">
+    <ol class="flex items-center gap-2 text-sm">
+        {% for item in items %}
+        <li class="flex items-center gap-2">
+            {% if not loop.first %}
+            <i class="fas fa-chevron-right text-[10px] text-gray-600"></i>
+            {% endif %}
+            
+            {% if loop.last %}
+            <span class="text-gray-300 font-medium">{{ item.label }}</span>
+            {% else %}
+            <a href="{{ item.url }}" 
+               class="text-gray-500 hover:text-cyan-400 transition-colors flex items-center gap-1.5 group">
+                {% if item.icon %}
+                <i class="fas fa-{{ item.icon }} text-xs text-gray-600 group-hover:text-cyan-400 transition-colors"></i>
+                {% endif %}
+                <span>{{ item.label }}</span>
+            </a>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ol>
+</nav>
+
+<!-- With dropdown for overflow -->
+{% if overflow_items %}
+<nav aria-label="Breadcrumb" class="mb-6">
+    <ol class="flex items-center gap-2 text-sm">
+        <li>
+            <a href="{{ items[0].url }}" 
+               class="text-gray-500 hover:text-cyan-400 transition-colors flex items-center gap-1.5 group">
+                {% if items[0].icon %}
+                <i class="fas fa-{{ items[0].icon }} text-xs text-gray-600 group-hover:text-cyan-400 transition-colors"></i>
+                {% endif %}
+                <span>{{ items[0].label }}</span>
+            </a>
+        </li>
+        
+        <li class="relative">
+            <i class="fas fa-chevron-right text-[10px] text-gray-600"></i>
+            <button onclick="toggleBreadcrumbOverflow()" 
+                    class="text-gray-500 hover:text-cyan-400 transition-colors px-1">
+                <i class="fas fa-ellipsis-h"></i>
+            </button>
+            
+            <!-- Overflow Dropdown -->
+            <div id="breadcrumb-overflow" 
+                 class="absolute top-full left-0 mt-2 glass-card p-2 hidden min-w-[150px] z-50">
+                {% for item in overflow_items %}
+                <a href="{{ item.url }}" 
+                   class="block px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                    {{ item.label }}
+                </a>
+                {% endfor %}
+            </div>
+        </li>
+        
+        <li class="flex items-center gap-2">
+            <i class="fas fa-chevron-right text-[10px] text-gray-600"></i>
+            <span class="text-gray-300 font-medium">{{ items[-1].label }}</span>
+        </li>
+    </ol>
+</nav>
+{% endif %}

@@ -1,0 +1,134 @@
+<!-- Sidebar Component -->
+<aside id="sidebar" class="sidebar w-64 flex-shrink-0 flex flex-col transition-transform duration-300 lg:translate-x-0" 
+       :class="{' -translate-x-full': !isOpen }">
+    
+    <!-- Logo -->
+    <div class="p-6 border-b border-white/5">
+        <a href="/" class="flex items-center gap-3 group">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-purple-600 flex items-center justify-center group-hover:shadow-[0_0_20px_rgba(0,240,255,0.3)] transition-all">
+                <i class="fas fa-landmark text-white text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-['Space_Grotesk'] font-bold text-lg">SICRSense</h1>
+                <p class="text-xs text-gray-500">IFRS 9 Platform</p>
+            </div>
+        </a>
+    </div>
+    
+    <!-- Navigation -->
+    <nav class="flex-1 py-6 overflow-y-auto">
+        <!-- Main Section -->
+        <div class="px-3 mb-2">
+            <span class="text-xs text-gray-600 uppercase tracking-wider font-semibold px-3">Main</span>
+        </div>
+        
+        <a href="/dashboard" class="nav-item {{ 'active' if active_page == 'dashboard' else '' }}" data-tooltip="Dashboard">
+            <i class="fas fa-th-large w-5"></i>
+            <span>Dashboard</span>
+            <span class="ml-auto">
+                <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+            </span>
+        </a>
+        
+        <a href="/predictions" class="nav-item {{ 'active' if active_page == 'predictions' else '' }}">
+            <i class="fas fa-brain w-5"></i>
+            <span>Predictions</span>
+        </a>
+        
+        <a href="/batch" class="nav-item {{ 'active' if active_page == 'batch' else '' }}">
+            <i class="fas fa-layer-group w-5"></i>
+            <span>Batch Processing</span>
+        </a>
+        
+        <!-- Analytics Section -->
+        <div class="px-3 mt-6 mb-2">
+            <span class="text-xs text-gray-600 uppercase tracking-wider font-semibold px-3">Analytics</span>
+        </div>
+        
+        <a href="/monitoring" class="nav-item {{ 'active' if active_page == 'monitoring' else '' }}">
+            <i class="fas fa-chart-line w-5"></i>
+            <span>Live Monitoring</span>
+            <span class="ml-auto">
+                <span class="live-indicator"></span>
+            </span>
+        </a>
+        
+        <a href="/ifrs9-workflow" class="nav-item {{ 'active' if active_page == 'workflow' else '' }}">
+            <i class="fas fa-diagram-project w-5"></i>
+            <span>IFRS 9 Workflow</span>
+        </a>
+        
+        <a href="/reports" class="nav-item {{ 'active' if active_page == 'reports' else '' }}">
+            <i class="fas fa-file-pdf w-5"></i>
+            <span>Reports</span>
+        </a>
+        
+        <!-- Administration Section -->
+        {% if user.role == 'admin' %}
+        <div class="px-3 mt-6 mb-2">
+            <span class="text-xs text-gray-600 uppercase tracking-wider font-semibold px-3">Administration</span>
+        </div>
+        
+        <a href="/admin" class="nav-item {{ 'active' if active_page == 'admin' else '' }}">
+            <i class="fas fa-shield-haltered w-5"></i>
+            <span>Admin Panel</span>
+        </a>
+        
+        <a href="/admin/users" class="nav-item {{ 'active' if active_page == 'users' else '' }}">
+            <i class="fas fa-users w-5"></i>
+            <span>User Management</span>
+        </a>
+        
+        <a href="/admin/audit" class="nav-item {{ 'active' if active_page == 'audit' else '' }}">
+            <i class="fas fa-clipboard-list w-5"></i>
+            <span>Audit Logs</span>
+        </a>
+        {% endif %}
+        
+        <!-- Settings Section -->
+        <div class="px-3 mt-6 mb-2">
+            <span class="text-xs text-gray-600 uppercase tracking-wider font-semibold px-3">Settings</span>
+        </div>
+        
+        <a href="/settings" class="nav-item {{ 'active' if active_page == 'settings' else '' }}">
+            <i class="fas fa-cog w-5"></i>
+            <span>Settings</span>
+        </a>
+        
+        <a href="/api-docs" class="nav-item" target="_blank">
+            <i class="fas fa-code w-5"></i>
+            <span>API Docs</span>
+            <i class="fas fa-external-link-alt text-xs ml-auto"></i>
+        </a>
+    </nav>
+    
+    <!-- User Info -->
+    <div class="p-4 border-t border-white/5">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-purple-600 flex items-center justify-center flex-shrink-0">
+                <span class="text-white font-bold text-sm">{% if user %}{{ (user.first_name|default(user.username))[0] | upper }}{{ (user.last_name|default(''))[0] | upper }}{% else %}U{% endif %}</span>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold truncate">{% if user %}{{ user.first_name|default('') }} {{ user.last_name|default(user.username) }}{% else %}User{% endif %}</p>
+                <p class="text-xs text-gray-500 truncate">{% if user %}{{ user.email }}{% endif %}</p>
+            </div>
+            <div class="relative">
+                <button onclick="toggleUserDropdown()" class="text-gray-500 hover:text-white transition-colors">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <div id="user-dropdown" class="absolute bottom-full right-0 mb-2 glass-card p-2 hidden min-w-[180px]">
+                    <a href="/profile" class="block px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                        <i class="fas fa-user mr-2"></i> Profile
+                    </a>
+                    <a href="/settings" class="block px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                        <i class="fas fa-cog mr-2"></i> Settings
+                    </a>
+                    <hr class="border-white/5 my-2">
+                    <button onclick="logout()" class="w-full text-left px-4 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-white/5 rounded-lg transition-colors">
+                        <i class="fas fa-sign-out-alt mr-2"></i> Sign Out
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</aside>

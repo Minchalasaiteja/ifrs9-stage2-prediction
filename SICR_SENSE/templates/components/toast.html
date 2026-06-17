@@ -1,0 +1,47 @@
+<!-- Toast Notification Component -->
+<div id="toast-container" class="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3">
+    <!-- Toasts are dynamically added here -->
+</div>
+
+<template id="toast-template">
+    <div class="toast glass-card p-4 flex items-center gap-3 border-l-4 min-w-[320px] max-w-[420px] transform translate-x-full transition-all duration-300"
+         role="alert">
+        <div class="toast-icon flex-shrink-0">
+            <!-- Icon based on type -->
+        </div>
+        <div class="toast-content flex-1">
+            <p class="toast-title text-sm font-semibold"></p>
+            <p class="toast-message text-xs text-gray-400 mt-1"></p>
+        </div>
+        <button onclick="this.parentElement.remove()" class="toast-close text-gray-500 hover:text-white transition-colors flex-shrink-0">
+            <i class="fas fa-times"></i>
+        </button>
+        <!-- Progress bar -->
+        <div class="toast-progress absolute bottom-0 left-0 h-1 bg-current opacity-50 rounded-full transition-all duration-[var(--duration)]"></div>
+    </div>
+</template>
+
+
+
+<style>
+.toast {
+    animation: toastSlideIn 0.35s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    position: relative;
+    overflow: hidden;
+}
+
+@keyframes toastSlideIn {
+    from {
+        transform: translateX(130%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.toast-progress {
+    transition: width linear;
+}
+</style>

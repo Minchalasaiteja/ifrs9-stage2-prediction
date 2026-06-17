@@ -1,0 +1,79 @@
+<!-- Loading Components -->
+
+<!-- Full Page Loader -->
+<div id="page-loader" class="fixed inset-0 z-[9999] bg-[var(--bg-primary)]/90 backdrop-blur-sm flex items-center justify-center hidden">
+    <div class="text-center">
+        <div class="relative w-24 h-24 mx-auto mb-6">
+            <!-- Outer ring -->
+            <div class="absolute inset-0 border-4 border-cyan-400/20 rounded-full"></div>
+            <!-- Spinning ring -->
+            <div class="absolute inset-0 border-4 border-transparent border-t-cyan-400 rounded-full animate-spin"></div>
+            <!-- Inner logo -->
+            <div class="absolute inset-4 bg-gradient-to-br from-cyan-400 to-purple-600 rounded-full flex items-center justify-center">
+                <i class="fas fa-landmark text-white text-xl"></i>
+            </div>
+        </div>
+        <h3 class="text-lg font-bold mb-2 gradient-text">Loading</h3>
+        <p class="text-gray-400 text-sm" id="loader-message">Please wait...</p>
+    </div>
+</div>
+
+<!-- Inline Loader -->
+<div id="inline-loader" class="hidden">
+    <div class="flex items-center justify-center py-12">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 border-3 border-cyan-400/20 border-t-cyan-400 rounded-full animate-spin"></div>
+            <span class="text-gray-400">Loading...</span>
+        </div>
+    </div>
+</div>
+
+<!-- Skeleton Loader -->
+<template id="skeleton-template">
+    <div class="animate-pulse space-y-4">
+        <div class="skeleton h-4 w-3/4 rounded"></div>
+        <div class="skeleton h-4 w-1/2 rounded"></div>
+        <div class="skeleton h-32 w-full rounded-xl"></div>
+        <div class="grid grid-cols-3 gap-4">
+            <div class="skeleton h-20 rounded-xl"></div>
+            <div class="skeleton h-20 rounded-xl"></div>
+            <div class="skeleton h-20 rounded-xl"></div>
+        </div>
+    </div>
+</template>
+
+<!-- Button Loader -->
+<span class="btn-loader hidden">
+    <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+</span>
+
+<!-- Dots Loader -->
+<div class="dots-loader">
+    <div class="flex gap-1.5">
+        <div class="w-2.5 h-2.5 bg-cyan-400 rounded-full animate-bounce" style="animation-delay: 0s"></div>
+        <div class="w-2.5 h-2.5 bg-cyan-400 rounded-full animate-bounce" style="animation-delay: 0.15s"></div>
+        <div class="w-2.5 h-2.5 bg-cyan-400 rounded-full animate-bounce" style="animation-delay: 0.3s"></div>
+    </div>
+</div>
+
+
+
+<style>
+.skeleton {
+    background: linear-gradient(90deg, 
+        rgba(255,255,255,0.05) 25%, 
+        rgba(255,255,255,0.1) 50%, 
+        rgba(255,255,255,0.05) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+</style>

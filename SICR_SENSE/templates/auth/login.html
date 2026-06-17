@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SICRSense | Enterprise Login</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- GSAP for animations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  
+  <!-- Three.js for 3D background -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #131320;
+      --text-primary: #ffffff;
+      --text-secondary: #a0a0b0;
+      --accent: #00f0ff;
+      --accent2: #7c3aed;
+      --glass-bg: rgba(19, 19, 32, 0.6);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --input-bg: rgba(255, 255, 255, 0.05);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      overflow-x: hidden;
+      min-height: 100vh;
+      width: 100vw;
+    }
+    
+    /* 3D Canvas Background */
+    #bg-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+    
+    /* Glassmorphism Cards */
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .glass-card:hover {
+      border-color: rgba(0, 240, 255, 0.3);
+      box-shadow: 0 8px 32px rgba(0, 240, 255, 0.1);
+    }
+    
+    /* Neumorphism Input */
+    .neo-input {
+      background: var(--input-bg);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 14px 20px;
+      color: var(--text-primary);
+      font-size: 16px;
+      transition: all 0.3s ease;
+      outline: none;
+      width: 100%;
+    }
+    
+    .neo-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.2), inset 0 0 20px rgba(0, 240, 255, 0.05);
+      background: rgba(255, 255, 255, 0.08);
+    }
+    
+    /* Gradient Button */
+    .gradient-btn {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      border-radius: 16px;
+      padding: 16px 32px;
+      color: white;
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .gradient-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s ease;
+    }
+    
+    .gradient-btn:hover::before {
+      left: 100%;
+    }
+    
+    .gradient-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 40px rgba(0, 240, 255, 0.3);
+    }
+    
+    /* Floating Animation */
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    .floating {
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    /* Pulse Effect */
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(0, 240, 255, 0.2); }
+      50% { box-shadow: 0 0 40px rgba(0, 240, 255, 0.4); }
+    }
+    
+    .pulse-glow {
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+    
+    /* Ripple Effect */
+    .ripple {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .ripple::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+    
+    .ripple:active::after {
+      width: 300px;
+      height: 300px;
+    }
+    
+    /* Loading Spinner */
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Particle Animation */
+    .particle {
+      position: absolute;
+      pointer-events: none;
+      animation: particle-float 4s ease-in-out infinite;
+    }
+    
+    @keyframes particle-float {
+      0%, 100% { transform: translate(0, 0) scale(1); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { transform: translate(100px, -100px) scale(0); opacity: 0; }
+    }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(var(--accent), var(--accent2));
+      border-radius: 4px;
+    }
+    
+    /* Error Shake Animation */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+      20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+    
+    .shake {
+      animation: shake 0.6s ease-in-out;
+    }
+    
+    /* Success Check Animation */
+    @keyframes checkmark {
+      0% { stroke-dashoffset: 100; }
+      100% { stroke-dashoffset: 0; }
+    }
+    
+    .checkmark-circle {
+      stroke-dasharray: 166;
+      stroke-dashoffset: 166;
+      animation: checkmark 0.6s ease-out forwards;
+    }
+  </style>
+</head>
+<body>
+  <!-- 3D Background Canvas -->
+  <canvas id="bg-canvas"></canvas>
+  
+  <!-- Floating Particles -->
+  <div id="particles-container"></div>
+  
+  <!-- Main Container -->
+  <div class="relative z-10 flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-md">
+      
+      <!-- Logo Section -->
+      <div class="text-center mb-8 floating">
+        <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-400 to-purple-600 mb-4 pulse-glow">
+          <i class="fas fa-landmark text-3xl text-white"></i>
+        </div>
+        <h1 class="text-4xl font-bold font-['Space_Grotesk'] bg-gradient-to-r from-cyan-400 to-purple-600 bg-clip-text text-transparent">
+          SICRSense
+        </h1>
+        <p class="text-gray-400 mt-2">Enterprise IFRS 9 Platform</p>
+      </div>
+      
+      <!-- Login Card -->
+      <div class="glass-card rounded-3xl p-8">
+        
+        <!-- Tabs -->
+        <div class="flex mb-8 bg-black/20 rounded-2xl p-1">
+          <button id="login-tab" class="flex-1 py-3 px-6 rounded-xl font-semibold transition-all duration-300 bg-gradient-to-r from-cyan-400 to-purple-600 text-white">
+            Sign In
+          </button>
+          <button id="signup-tab" class="flex-1 py-3 px-6 rounded-xl font-semibold transition-all duration-300 text-gray-400 hover:text-white">
+            Sign Up
+          </button>
+        </div>
+        
+        <!-- Login Form -->
+        <form id="login-form" class="space-y-6">
+          <!-- Email Input -->
+          <div class="relative group">
+            <label class="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
+            <div class="relative">
+              <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-cyan-400 transition-colors"></i>
+              <input type="email" id="login-email" class="neo-input pl-12" placeholder="john@example.com" required>
+            </div>
+          </div>
+          
+          <!-- Password Input -->
+          <div class="relative group">
+            <label class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+            <div class="relative">
+              <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-cyan-400 transition-colors"></i>
+              <input type="password" id="login-password" class="neo-input pl-12 pr-12" placeholder="••••••••" required>
+              <button type="button" onclick="togglePassword('login-password', this)" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-cyan-400 transition-colors">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Remember & Forgot -->
+          <div class="flex items-center justify-between text-sm">
+            <label class="flex items-center text-gray-400 cursor-pointer">
+              <input type="checkbox" class="mr-2 w-4 h-4 rounded border-gray-600 bg-transparent checked:bg-cyan-400 focus:ring-cyan-400">
+              Remember me
+            </label>
+            <a href="#" onclick="showForgotPassword()" class="text-cyan-400 hover:text-cyan-300 transition-colors">Forgot password?</a>
+          </div>
+          
+          <!-- Login Button -->
+          <button type="submit" class="gradient-btn w-full ripple">
+            <span id="login-btn-text">Sign In</span>
+            <span id="login-spinner" class="spinner hidden ml-2"></span>
+          </button>
+          
+          <!-- 2FA Modal -->
+          <div id="2fa-modal" class="hidden mt-4 p-4 bg-black/20 rounded-2xl border border-gray-700">
+            <label class="block text-sm font-medium text-gray-300 mb-2">Two-Factor Authentication Code</label>
+            <input type="text" id="2fa-code" class="neo-input text-center tracking-widest" placeholder="000000" maxlength="6">
+            <button type="button" onclick="verify2FA()" class="gradient-btn w-full mt-3">Verify Code</button>
+          </div>
+        </form>
+        
+        <!-- Signup Form -->
+        <form id="signup-form" class="hidden space-y-6">
+          <div class="grid grid-cols-2 gap-4">
+            <div class="relative group">
+              <label class="block text-sm font-medium text-gray-300 mb-2">First Name</label>
+              <input type="text" id="signup-firstname" class="neo-input" placeholder="John" required>
+            </div>
+            <div class="relative group">
+              <label class="block text-sm font-medium text-gray-300 mb-2">Last Name</label>
+              <input type="text" id="signup-lastname" class="neo-input" placeholder="Doe" required>
+            </div>
+          </div>
+          
+          <div class="relative group">
+            <label class="block text-sm font-medium text-gray-300 mb-2">Username</label>
+            <input type="text" id="signup-username" class="neo-input" placeholder="johndoe" required>
+          </div>
+          
+          <div class="relative group">
+            <label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
+            <input type="email" id="signup-email" class="neo-input" placeholder="john@example.com" required>
+          </div>
+          
+          <div class="relative group">
+            <label class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+            <div class="relative">
+              <input type="password" id="signup-password" class="neo-input pr-12" placeholder="Min. 8 characters" required>
+              <button type="button" onclick="togglePassword('signup-password', this)" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-cyan-400">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+          
+          <div class="relative group">
+            <label class="block text-sm font-medium text-gray-300 mb-2">Company (Optional)</label>
+            <input type="text" id="signup-company" class="neo-input" placeholder="ABC Corp">
+          </div>
+          
+          <label class="flex items-start text-sm text-gray-400">
+            <input type="checkbox" class="mr-2 mt-1 w-4 h-4 rounded border-gray-600" required>
+            I agree to the <a href="#" class="text-cyan-400 hover:underline">Terms of Service</a> and <a href="#" class="text-cyan-400 hover:underline">Privacy Policy</a>
+          </label>
+          
+          <button type="submit" class="gradient-btn w-full ripple">
+            <span id="signup-btn-text">Create Account</span>
+            <span id="signup-spinner" class="spinner hidden ml-2"></span>
+          </button>
+        </form>
+        
+        <!-- Forgot Password Form -->
+        <form id="forgot-form" class="hidden space-y-6">
+          <h3 class="text-xl font-bold text-center mb-4">Reset Password</h3>
+          <p class="text-gray-400 text-center text-sm">Enter your email to receive reset instructions</p>
+          
+          <div class="relative group">
+            <input type="email" id="forgot-email" class="neo-input" placeholder="Enter your email" required>
+          </div>
+          
+          <button type="submit" class="gradient-btn w-full">Send Reset Link</button>
+          <button type="button" onclick="showLogin()" class="w-full text-center text-cyan-400 hover:text-cyan-300 transition-colors text-sm">
+            Back to Login
+          </button>
+        </form>
+        
+        <!-- Divider -->
+        <div class="relative my-8">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-gray-700"></div>
+          </div>
+          <div class="relative flex justify-center text-sm">
+            <span class="px-4 bg-[#131320] text-gray-400">or continue with</span>
+          </div>
+        </div>
+        
+        <!-- Social Login -->
+        <div class="grid grid-cols-3 gap-4">
+          <button class="glass-card p-3 rounded-xl hover:border-cyan-400 transition-all group">
+            <i class="fab fa-google text-2xl text-gray-400 group-hover:text-cyan-400 transition-colors"></i>
+          </button>
+          <button class="glass-card p-3 rounded-xl hover:border-cyan-400 transition-all group">
+            <i class="fab fa-microsoft text-2xl text-gray-400 group-hover:text-cyan-400 transition-colors"></i>
+          </button>
+          <button class="glass-card p-3 rounded-xl hover:border-cyan-400 transition-all group">
+            <i class="fab fa-github text-2xl text-gray-400 group-hover:text-cyan-400 transition-colors"></i>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Footer -->
+      <p class="text-center text-gray-500 text-sm mt-8">
+        ©    SICRSense. Enterprise-Grade Security
+      </p>
+    </div>
+  </div>
+  
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-4"></div>
+  
+  <script>
+    // ===== THREE.JS 3D BACKGROUND =====
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ 
+      canvas: document.getElementById('bg-canvas'),
+      alpha: true,
+      antialias: true 
+    });
+    
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    
+    // Create particles
+    const particlesGeometry = new THREE.BufferGeometry();
+    const particlesCount = 5000;
+    const posArray = new Float32Array(particlesCount * 3);
+    const colorArray = new Float32Array(particlesCount * 3);
+    
+    for(let i = 0; i < particlesCount * 3; i += 3) {
+      posArray[i] = (Math.random() - 0.5) * 10;
+      posArray[i+1] = (Math.random() - 0.5) * 10;
+      posArray[i+2] = (Math.random() - 0.5) * 10;
+      
+      // Colors with cyan-purple gradient
+      const mixFactor = Math.random();
+      colorArray[i] = 0.0 + mixFactor * 0.5;
+      colorArray[i+1] = 0.9 - mixFactor * 0.5;
+      colorArray[i+2] = 1.0;
+    }
+    
+    particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
+    
+    const particlesMaterial = new THREE.PointsMaterial({
+      size: 0.005,
+      vertexColors: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    
+    const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+    scene.add(particlesMesh);
+    
+    // Add geometric shapes
+    const geometry = new THREE.IcosahedronGeometry(0.5, 1);
+    const material = new THREE.MeshBasicMaterial({
+      color: 0x00f0ff,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.15
+    });
+    
+    const shapes = [];
+    for(let i = 0; i < 5; i++) {
+      const shape = new THREE.Mesh(geometry, material);
+      shape.position.set(
+        (Math.random() - 0.5) * 8,
+        (Math.random() - 0.5) * 8,
+        (Math.random() - 0.5) * 4
+      );
+      shape.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+      shapes.push(shape);
+      scene.add(shape);
+    }
+    
+    camera.position.z = 3;
+    
+    // Animation
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      particlesMesh.rotation.y += 0.0002;
+      particlesMesh.rotation.x += 0.0001;
+      
+      shapes.forEach((shape, index) => {
+        shape.rotation.x += 0.002 + index * 0.0005;
+        shape.rotation.y += 0.003 + index * 0.0005;
+        shape.position.y += Math.sin(Date.now() * 0.001 + index) * 0.002;
+      });
+      
+      renderer.render(scene, camera);
+    }
+    
+    animate();
+    
+    // Resize handler
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+    
+    // ===== MOUSE PARALLAX EFFECT =====
+    document.addEventListener('mousemove', (e) => {
+      const mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+      const mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+      
+      particlesMesh.rotation.y = mouseX * 0.5;
+      particlesMesh.rotation.x = mouseY * 0.5;
+    });
+    
+    // ===== FORM HANDLING =====
+    // Tab switching with GSAP animations
+    const loginTab = document.getElementById('login-tab');
+    const signupTab = document.getElementById('signup-tab');
+    const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
+    const forgotForm = document.getElementById('forgot-form');
+    
+    loginTab.addEventListener('click', () => {
+      gsap.to(signupForm, { opacity: 0, y: 20, duration: 0.3, display: 'none' });
+      gsap.to(forgotForm, { opacity: 0, y: 20, duration: 0.3, display: 'none' });
+      gsap.to(loginForm, { opacity: 1, y: 0, duration: 0.3, display: 'block', delay: 0.1 });
+      
+      loginTab.classList.add('bg-gradient-to-r', 'from-cyan-400', 'to-purple-600', 'text-white');
+      signupTab.classList.remove('bg-gradient-to-r', 'from-cyan-400', 'to-purple-600', 'text-white');
+      signupTab.classList.add('text-gray-400');
+    });
+    
+    signupTab.addEventListener('click', () => {
+      gsap.to(loginForm, { opacity: 0, y: 20, duration: 0.3, display: 'none' });
+      gsap.to(forgotForm, { opacity: 0, y: 20, duration: 0.3, display: 'none' });
+      gsap.to(signupForm, { opacity: 1, y: 0, duration: 0.3, display: 'block', delay: 0.1 });
+      
+      signupTab.classList.add('bg-gradient-to-r', 'from-cyan-400', 'to-purple-600', 'text-white');
+      loginTab.classList.remove('bg-gradient-to-r', 'from-cyan-400', 'to-purple-600', 'text-white');
+      loginTab.classList.add('text-gray-400');
+    });
+    
+    function showForgotPassword() {
+      gsap.to(loginForm, { opacity: 0, y: 20, duration: 0.3, display: 'none' });
+      gsap.to(signupForm, { opacity: 0, y: 20, duration: 0.3, display: 'none' });
+      gsap.to(forgotForm, { opacity: 1, y: 0, duration: 0.3, display: 'block', delay: 0.1 });
+    }
+    
+    function showLogin() {
+      gsap.to(signupForm, { opacity: 0, y: 20, duration: 0.3, display: 'none' });
+      gsap.to(forgotForm, { opacity: 0, y: 20, duration: 0.3, display: 'none' });
+      gsap.to(loginForm, { opacity: 1, y: 0, duration: 0.3, display: 'block', delay: 0.1 });
+    }
+    
+    // Toggle password visibility
+    function togglePassword(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const icon = btn.querySelector('i');
+      
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      }
+    }
+    
+    // Toast notification system
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      const colors = {
+        success: 'border-l-4 border-green-400 bg-green-400/10',
+        error: 'border-l-4 border-red-400 bg-red-400/10',
+        info: 'border-l-4 border-cyan-400 bg-cyan-400/10'
+      };
+      
+      const icons = {
+        success: 'fa-check-circle text-green-400',
+        error: 'fa-exclamation-circle text-red-400',
+        info: 'fa-info-circle text-cyan-400'
+      };
+      
+      toast.className = `glass-card p-4 rounded-xl flex items-center gap-3 ${colors[type]} transform translate-x-full transition-transform duration-300`;
+      toast.innerHTML = `
+        <i class="fas ${icons[type]} text-xl"></i>
+        <span class="text-white">${message}</span>
+      `;
+      
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.transform = 'translateX(0)';
+      }, 100);
+      
+      setTimeout(() => {
+        toast.style.transform = 'translateX(full)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+    
+    // Login form submission
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      const btnText = document.getElementById('login-btn-text');
+      const spinner = document.getElementById('login-spinner');
+      
+      // Show loading
+      btnText.textContent = 'Authenticating...';
+      spinner.classList.remove('hidden');
+      
+      try {
+        const response = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ username: email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.status === 403 && response.headers.get('X-2FA-Required')) {
+          // Show 2FA modal
+          document.getElementById('2fa-modal').classList.remove('hidden');
+          showToast('Please enter 2FA code', 'info');
+        } else if (response.ok) {
+          // Store tokens
+          localStorage.setItem('access_token', data.access_token);
+          localStorage.setItem('refresh_token', data.refresh_token);
+          
+          showToast('Login successful! Redirecting...', 'success');
+          
+          // Redirect to dashboard with animation
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 1000);
+        } else {
+          showToast(data.detail || 'Login failed', 'error');
+          loginForm.classList.add('shake');
+          setTimeout(() => loginForm.classList.remove('shake'), 600);
+        }
+      } catch (error) {
+        showToast('Network error occurred', 'error');
+      } finally {
+        btnText.textContent = 'Sign In';
+        spinner.classList.add('hidden');
+      }
+    });
+    
+    // Signup form submission
+    signupForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const userData = {
+        username: document.getElementById('signup-username').value,
+        email: document.getElementById('signup-email').value,
+        password: document.getElementById('signup-password').value,
+        first_name: document.getElementById('signup-firstname').value,
+        last_name: document.getElementById('signup-lastname').value,
+        company: document.getElementById('signup-company').value || null
+      };
+      
+      const btnText = document.getElementById('signup-btn-text');
+      const spinner = document.getElementById('signup-spinner');
+      
+      btnText.textContent = 'Creating Account...';
+      spinner.classList.remove('hidden');
+      
+      try {
+        const response = await fetch('/api/v1/auth/signup', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(userData)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          localStorage.setItem('access_token', data.access_token);
+          showToast('Account created successfully!', 'success');
+          setTimeout(() => window.location.href = '/dashboard', 1000);
+        } else {
+          showToast(data.detail || 'Signup failed', 'error');
+        }
+      } catch (error) {
+        showToast('Network error occurred', 'error');
+      } finally {
+        btnText.textContent = 'Create Account';
+        spinner.classList.add('hidden');
+      }
+    });
+    
+    // Forgot password form
+    forgotForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('forgot-email').value;
+      
+      try {
+        const response = await fetch(`/api/v1/auth/password/reset-request?email=${encodeURIComponent(email)}`, {
+          method: 'POST'
+        });
+        
+        if (response.ok) {
+          showToast('Reset link sent to your email', 'success');
+          showLogin();
+        }
+      } catch (error) {
+        showToast('Failed to send reset email', 'error');
+      }
+    });
+    
+    // 2FA Verification
+    async function verify2FA() {
+      const code = document.getElementById('2fa-code').value;
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      
+      try {
+        const formData = new URLSearchParams({ username: email, password });
+        formData.append('two_factor_code', code);
+        
+        const response = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          localStorage.setItem('access_token', data.access_token);
+          showToast('2FA verified successfully!', 'success');
+          setTimeout(() => window.location.href = '/dashboard', 1000);
+        } else {
+          showToast('Invalid 2FA code', 'error');
+        }
+      } catch (error) {
+        showToast('Verification failed', 'error');
+      }
+    }
+    
+    // ===== CREATE FLOATING PARTICLES =====
+    function createParticles() {
+      const container = document.getElementById('particles-container');
+      
+      for (let i = 0; i < 20; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle absolute w-2 h-2 rounded-full bg-gradient-to-r from-cyan-400 to-purple-600';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.top = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 4 + 's';
+        particle.style.animationDuration = (Math.random() * 4 + 3) + 's';
+        container.appendChild(particle);
+      }
+    }
+    
+    createParticles();
+    
+    // ===== CURSOR TRAIL EFFECT =====
+    const cursorTrail = document.createElement('div');
+    cursorTrail.style.cssText = `
+      position: fixed;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,240,255,0.3), transparent);
+      pointer-events: none;
+      z-index: 9999;
+      transition: transform 0.1s ease;
+    `;
+    document.body.appendChild(cursorTrail);
+    
+    document.addEventListener('mousemove', (e) => {
+      cursorTrail.style.left = e.clientX - 10 + 'px';
+      cursorTrail.style.top = e.clientY - 10 + 'px';
+    });
+  </script>
+  <script src="/static/js/components.js"></script>
+</body>
+</html>

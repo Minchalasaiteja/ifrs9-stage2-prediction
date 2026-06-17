@@ -1,0 +1,49 @@
+# Core Framework
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+
+# Database
+motor
+pymongo
+redis
+hiredis
+
+# Authentication & Security
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+pyotp
+qrcode
+Pillow
+cryptography
+
+# Email
+aiosmtplib
+jinja2
+
+# Machine Learning
+scikit-learn==1.6.1
+pandas==2.3.3
+numpy==2.4.6
+xgboost==3.2.0
+lightgbm==4.6.0
+joblib
+
+
+# Monitoring
+prometheus-client
+psutil
+python-json-logger
+
+# HTTP & WebSocket
+httpx
+websockets
+
+# Production
+gunicorn
+
+# Utilities
+python-dotenv
+PyYAML

@@ -1,0 +1,243 @@
+{% extends 'dashboard_base.html' %}
+
+{% block title %}SICRSense | Profile{% endblock %}
+
+{% block content %}
+<div class="glass-card p-8 space-y-6">
+  <div>
+    <h1 class="text-3xl font-bold">My Profile</h1>
+    <p class="text-gray-400 mt-2">Manage your personal account details and preferences.</p>
+  </div>
+</div>
+
+<div class="grid lg:grid-cols-2 gap-6">
+  <!-- Contact Information -->
+  <div class="glass-card p-6 space-y-4">
+    <h2 class="text-xl font-semibold">Contact Information</h2>
+    <form id="contactForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">First Name</label>
+        <input type="text" id="firstName" class="neo-input" placeholder="Enter first name" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">Last Name</label>
+        <input type="text" id="lastName" class="neo-input" placeholder="Enter last name" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">Phone Number</label>
+        <input type="tel" id="phoneNumber" class="neo-input" placeholder="+44 (0)" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">Address</label>
+        <input type="text" id="address" class="neo-input" placeholder="Street address" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">City</label>
+        <input type="text" id="city" class="neo-input" placeholder="City" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Postal Code</label>
+          <input type="text" id="postalCode" class="neo-input" placeholder="Postal code" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Country</label>
+          <input type="text" id="country" class="neo-input" placeholder="Country" value="UK" />
+        </div>
+      </div>
+      <button type="submit" class="w-full py-3 rounded-xl bg-cyan-500/15 text-cyan-300 border border-cyan-500/20 hover:border-cyan-400 transition-all font-medium">
+        Save Contact Info
+      </button>
+      <div id="contactStatus" class="hidden text-sm p-3 rounded-lg"></div>
+    </form>
+  </div>
+
+  <!-- Preferences & Settings -->
+  <div class="glass-card p-6 space-y-4">
+    <h2 class="text-xl font-semibold">Preferences</h2>
+    <form id="preferencesForm" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">Email Address <span class="text-gray-500 text-xs\">(Read-only)</span></label>
+        <input type="email" id="email" class="neo-input" readonly />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">Language</label>
+        <select id="language" class="neo-input">
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+          <option value="es">Español</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-300 mb-2">Timezone</label>
+        <select id="timezone" class="neo-input">
+          <option value="GMT">GMT (London)</option>
+          <option value="CET">CET (Central Europe)</option>
+          <option value="EST">EST (Eastern US)</option>
+          <option value="PST">PST (Pacific US)</option>
+          <option value="JST">JST (Tokyo)</option>
+          <option value="AEST">AEST (Sydney)</option>
+        </select>
+      </div>
+      <fieldset class="border border-gray-700 rounded-xl p-4 space-y-3">
+        <legend class="text-sm font-medium text-gray-300 px-2">Notification Preferences</legend>
+        <div class="flex items-center">
+          <input type="checkbox" id="emailNotifications" class="mr-3" checked />
+          <label for="emailNotifications" class="text-sm text-gray-300">Email notifications for predictions</label>
+        </div>
+        <div class="flex items-center">
+          <input type="checkbox" id="batchNotifications" class="mr-3" checked />
+          <label for="batchNotifications" class="text-sm text-gray-300">Notifications for batch job completion</label>
+        </div>
+        <div class="flex items-center">
+          <input type="checkbox" id="alertNotifications" class="mr-3" checked />
+          <label for="alertNotifications" class="text-sm text-gray-300">System alerts and security notifications</label>
+        </div>
+        <div class="flex items-center">
+          <input type="checkbox" id="weeklyReports" class="mr-3" />
+          <label for="weeklyReports" class="text-sm text-gray-300">Weekly usage reports</label>
+        </div>
+      </fieldset>
+      <button type="submit" class="w-full py-3 rounded-xl bg-purple-500/15 text-purple-300 border border-purple-500/20 hover:border-purple-400 transition-all font-medium">
+        Save Preferences
+      </button>
+      <div id="preferencesStatus" class="hidden text-sm p-3 rounded-lg"></div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  async function loadUserProfile() {
+    const token = localStorage.getItem('access_token');
+    
+    try {
+      const response = await fetch('/api/v1/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const user = await response.json();
+        
+        // Populate basic fields
+        document.getElementById('firstName').value = user.first_name || '';
+        document.getElementById('lastName').value = user.last_name || '';
+        document.getElementById('email').value = user.email || '';
+        document.getElementById('phoneNumber').value = user.phone_number || '';
+        document.getElementById('address').value = user.address || '';
+        document.getElementById('city').value = user.city || '';
+        document.getElementById('postalCode').value = user.postal_code || '';
+        document.getElementById('country').value = user.country || 'UK';
+        
+        // Populate preferences
+        document.getElementById('language').value = user.language || 'en';
+        document.getElementById('timezone').value = user.timezone || 'GMT';
+        document.getElementById('emailNotifications').checked = user.notification_email !== false;
+        document.getElementById('batchNotifications').checked = user.notification_batch !== false;
+        document.getElementById('alertNotifications').checked = user.notification_alerts !== false;
+        document.getElementById('weeklyReports').checked = user.notification_weekly_reports === true;
+      }
+    } catch (error) {
+      console.error('Failed to load profile:', error);
+    }
+  }
+
+  async function handleSaveContact(e) {
+    e.preventDefault();
+    const token = localStorage.getItem('access_token');
+    const status = document.getElementById('contactStatus');
+    
+    const data = {
+      first_name: document.getElementById('firstName').value,
+      last_name: document.getElementById('lastName').value,
+      phone_number: document.getElementById('phoneNumber').value,
+      address: document.getElementById('address').value,
+      city: document.getElementById('city').value,
+      postal_code: document.getElementById('postalCode').value,
+      country: document.getElementById('country').value
+    };
+
+    status.textContent = 'Saving...';
+    status.className = 'text-sm p-3 rounded-lg bg-blue-500/20 text-blue-400';
+    status.classList.remove('hidden');
+
+    try {
+      const response = await fetch('/api/v1/auth/profile/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (response.ok) {
+        status.textContent = '✓ Contact information saved successfully';
+        status.className = 'text-sm p-3 rounded-lg bg-green-500/20 text-green-400';
+      } else {
+        const error = await response.json();
+        status.textContent = `Error: ${error.detail || 'Failed to save'}`;
+        status.className = 'text-sm p-3 rounded-lg bg-red-500/20 text-red-400';
+      }
+    } catch (error) {
+      status.textContent = `Error: ${error.message}`;
+      status.className = 'text-sm p-3 rounded-lg bg-red-500/20 text-red-400';
+      console.error(error);
+    }
+  }
+
+  async function handleSavePreferences(e) {
+    e.preventDefault();
+    const token = localStorage.getItem('access_token');
+    const status = document.getElementById('preferencesStatus');
+    
+    const data = {
+      language: document.getElementById('language').value,
+      timezone: document.getElementById('timezone').value,
+      notification_email: document.getElementById('emailNotifications').checked,
+      notification_batch: document.getElementById('batchNotifications').checked,
+      notification_alerts: document.getElementById('alertNotifications').checked,
+      notification_weekly_reports: document.getElementById('weeklyReports').checked
+    };
+
+    status.textContent = 'Saving...';
+    status.className = 'text-sm p-3 rounded-lg bg-blue-500/20 text-blue-400';
+    status.classList.remove('hidden');
+
+    try {
+      const response = await fetch('/api/v1/auth/profile/preferences', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (response.ok) {
+        status.textContent = '✓ Preferences saved successfully';
+        status.className = 'text-sm p-3 rounded-lg bg-green-500/20 text-green-400';
+      } else {
+        const error = await response.json();
+        status.textContent = `Error: ${error.detail || 'Failed to save'}`;
+        status.className = 'text-sm p-3 rounded-lg bg-red-500/20 text-red-400';
+      }
+    } catch (error) {
+      status.textContent = `Error: ${error.message}`;
+      status.className = 'text-sm p-3 rounded-lg bg-red-500/20 text-red-400';
+      console.error(error);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadUserProfile();
+    document.getElementById('contactForm')?.addEventListener('submit', handleSaveContact);
+    document.getElementById('preferencesForm')?.addEventListener('submit', handleSavePreferences);
+  });
+</script>
+{% endblock %}
+

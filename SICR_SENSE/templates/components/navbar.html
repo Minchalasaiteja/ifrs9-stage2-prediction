@@ -1,0 +1,113 @@
+<!-- Navbar Component -->
+<!-- Top navigation bar with responsive mobile menu -->
+
+<nav class="fixed top-0 left-0 right-0 z-50 glass border-b border-white/5 backdrop-blur-xl">
+    <div class="max-w-[1920px] mx-auto">
+        <div class="flex items-center justify-between px-4 lg:px-8 h-16">
+            
+            <!-- Logo & Brand -->
+            <div class="flex items-center gap-8">
+                <a href="/" class="flex items-center gap-3 group flex-shrink-0">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-400 to-purple-600 flex items-center justify-center group-hover:shadow-[0_0_15px_rgba(0,240,255,0.4)] transition-all">
+                        <i class="fas fa-landmark text-white text-lg"></i>
+                    </div>
+                    <span class="font-['Space_Grotesk'] font-bold text-lg hidden sm:block">
+                        SICR<span class="text-cyan-400">Sense</span>
+                    </span>
+                </a>
+                
+                <!-- Desktop Navigation Links -->
+                <div class="hidden lg:flex items-center gap-1">
+                    <a href="/dashboard" class="nav-link px-4 py-2 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all {{ 'text-cyan-400 bg-cyan-400/10' if active_page == 'dashboard' }}">
+                        <i class="fas fa-th-large mr-2 text-xs"></i> Dashboard
+                    </a>
+                    <a href="/monitoring" class="nav-link px-4 py-2 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all {{ 'text-cyan-400 bg-cyan-400/10' if active_page == 'monitoring' }}">
+                        <i class="fas fa-chart-line mr-2 text-xs"></i> Monitoring
+                    </a>
+                    <a href="/ifrs9-workflow" class="nav-link px-4 py-2 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all {{ 'text-cyan-400 bg-cyan-400/10' if active_page == 'workflow' }}">
+                        <i class="fas fa-diagram-project mr-2 text-xs"></i> IFRS 9
+                    </a>
+                    
+                    <!-- More Dropdown -->
+                    <div class="relative" data-dropdown="nav-more">
+                        <button onclick="toggleDropdown('nav-more')" 
+                                class="nav-link px-4 py-2 rounded-xl text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                        <div id="nav-more" class="absolute top-full left-0 mt-2 glass-card p-2 hidden min-w-[200px]">
+                            <a href="/reports" class="block px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                                <i class="fas fa-file-pdf mr-2"></i> Reports
+                            </a>
+                            <a href="/settings" class="block px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                                <i class="fas fa-cog mr-2"></i> Settings
+                            </a>
+                            <a href="/api-docs" class="block px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                                <i class="fas fa-code mr-2"></i> API Docs
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Side Actions -->
+            <div class="flex items-center gap-3">
+                <!-- Quick Actions (Desktop) -->
+                <div class="hidden md:flex items-center gap-2">
+                    {% include 'components/ws-status.html' %}
+                    {% include 'components/theme-toggle.html' %}
+                    
+                    <!-- New Prediction Button -->
+                    <a href="/dashboard#predict" class="gradient-btn px-4 py-2 rounded-xl text-sm font-semibold hidden lg:flex items-center gap-2">
+                        <i class="fas fa-plus text-xs"></i>
+                        <span>New Prediction</span>
+                    </a>
+                </div>
+                
+                {% include 'components/notification-bell.html' %}
+                {% include 'components/user-avatar.html' %}
+                
+                <!-- Mobile Menu Toggle -->
+                <button onclick="toggleMobileMenu()" 
+                        class="lg:hidden glass-card p-2.5 rounded-xl text-gray-400 hover:text-white transition-colors">
+                    <i class="fas fa-bars text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="lg:hidden hidden border-t border-white/5 bg-[var(--bg-secondary)]">
+        <div class="px-4 py-4 space-y-1">
+            <a href="/dashboard" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all {{ 'text-cyan-400 bg-cyan-400/10' if active_page == 'dashboard' }}">
+                <i class="fas fa-th-large w-5"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="/monitoring" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all {{ 'text-cyan-400 bg-cyan-400/10' if active_page == 'monitoring' }}">
+                <i class="fas fa-chart-line w-5"></i>
+                <span>Live Monitoring</span>
+            </a>
+            <a href="/ifrs9-workflow" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all {{ 'text-cyan-400 bg-cyan-400/10' if active_page == 'workflow' }}">
+                <i class="fas fa-diagram-project w-5"></i>
+                <span>IFRS 9 Workflow</span>
+            </a>
+            <hr class="border-white/5 my-2">
+            <a href="/reports" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                <i class="fas fa-file-pdf w-5"></i>
+                <span>Reports</span>
+            </a>
+            <a href="/settings" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-all">
+                <i class="fas fa-cog w-5"></i>
+                <span>Settings</span>
+            </a>
+            <div class="px-4 pt-4">
+                <a href="/dashboard#predict" class="gradient-btn w-full py-3 rounded-xl text-center font-semibold flex items-center justify-center gap-2">
+                    <i class="fas fa-plus text-xs"></i>
+                    New Prediction
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Spacer for fixed navbar -->
+<div class="h-16"></div>

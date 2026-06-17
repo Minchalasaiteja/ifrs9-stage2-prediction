@@ -1,0 +1,36 @@
+{% extends 'dashboard_base.html' %}
+
+{% block title %}SICRSense | Reports{% endblock %}
+
+{% block content %}
+<div class="glass-card p-8 space-y-6">
+          <div>
+            <h1 class="text-3xl font-bold">Reports</h1>
+            <p class="text-gray-400 mt-2">Generate, download, or review operational and risk reports.</p>
+          </div>
+          <div class="grid lg:grid-cols-3 gap-6">
+            <div class="glass-card p-6">
+              <h2 class="text-xl font-semibold mb-4">Report Types</h2>
+              <ul class="space-y-3 text-gray-400">
+                <li><i class="fas fa-file-alt mr-2 text-cyan-400"></i> IFRS 9 Exposure Summary</li>
+                <li><i class="fas fa-file-alt mr-2 text-purple-400"></i> Prediction Performance</li>
+                <li><i class="fas fa-file-alt mr-2 text-green-400"></i> Portfolio Risk Profile</li>
+              </ul>
+            </div>
+            <div class="glass-card p-6 lg:col-span-2">
+              <h2 class="text-xl font-semibold mb-4">Recent Reports</h2>
+              <table>
+                <thead>
+                  <tr><th>Name</th><th>Date</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Monthly Portfolio Review</td><td>2026-06-10</td><td>Completed</td></tr>
+                  <tr><td>IFRS 9 Loss Forecast</td><td>2026-06-09</td><td>Ready</td></tr>
+                  <tr><td>Model Drift Summary</td><td>2026-06-08</td><td>Processing</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+{% endblock %}
+

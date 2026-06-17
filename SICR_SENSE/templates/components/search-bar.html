@@ -1,0 +1,62 @@
+<!-- Search Bar Component -->
+{% raw %}<!-- Usage: {% include 'components/search-bar.html' with id='main-search' placeholder='Search...' %} -->{% endraw %}
+
+<div class="relative group {{ class }}">
+    <!-- Search Icon -->
+    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-cyan-400 transition-colors"></i>
+    
+    <!-- Search Input -->
+    <input type="text" 
+           id="{{ id|default('search-input') }}" 
+           class="neo-input pl-12 pr-4 py-2.5 text-sm w-full {{ input_class }}"
+           placeholder="{{ placeholder|default('Search...') }}"
+           value="{{ value }}"
+           autocomplete="off"
+           oninput="handleSearch('{{ id|default('search-input') }}', this.value)"
+           onkeydown="handleSearchKeydown(event, '{{ id|default('search-input') }}')">
+    
+    <!-- Clear Button -->
+    <button id="{{ id|default('search-input') }}-clear" 
+            class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-red-400 transition-colors hidden"
+            onclick="clearSearch('{{ id|default('search-input') }}')"
+            title="Clear search">
+        <i class="fas fa-times-circle"></i>
+    </button>
+    
+    <!-- Search Results Dropdown -->
+    <div id="{{ id|default('search-input') }}-results" 
+         class="absolute top-full left-0 right-0 mt-2 glass-card hidden max-h-80 overflow-y-auto z-50">
+        
+        <!-- Loading State -->
+        <div class="p-4 text-center hidden" id="{{ id|default('search-input') }}-loading">
+            <div class="w-6 h-6 border-2 border-cyan-400/20 border-t-cyan-400 rounded-full animate-spin mx-auto mb-2"></div>
+            <p class="text-sm text-gray-500">Searching...</p>
+        </div>
+        
+        <!-- Results List -->
+        <div id="{{ id|default('search-input') }}-list">
+            <!-- Results populated dynamically -->
+        </div>
+        
+        <!-- No Results -->
+        <div id="{{ id|default('search-input') }}-empty" class="p-8 text-center hidden">
+            <i class="fas fa-search text-3xl text-gray-600 mb-3 block"></i>
+            <p class="text-sm text-gray-500">No results found for "<span class="search-query text-white"></span>"</p>
+        </div>
+        
+        <!-- Footer -->
+        <div id="{{ id|default('search-input') }}-footer" class="border-t border-white/5 p-3 hidden">
+            <div class="flex items-center justify-between text-xs text-gray-500">
+                <span>
+                    <kbd class="px-1.5 py-0.5 rounded bg-white/5 text-gray-400">↑↓</kbd> Navigate
+                </span>
+                <span>
+                    <kbd class="px-1.5 py-0.5 rounded bg-white/5 text-gray-400">Enter</kbd> Select
+                </span>
+                <span>
+                    <kbd class="px-1.5 py-0.5 rounded bg-white/5 text-gray-400">Esc</kbd> Close
+                </span>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,52 @@
+<!-- Stat Card Component -->
+<div class="stat-card glass-card p-6 relative overflow-hidden group cursor-pointer"
+     :class="{'border-cyan-400/30': highlighted}"
+     onclick="if(onClick) onClick()">
+    
+    <!-- Background Gradient -->
+    <div class="absolute inset-0 bg-gradient-to-br {{ gradient }} opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+    
+    <!-- Content -->
+    <div class="relative z-10">
+        <!-- Header -->
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <p class="text-sm text-gray-400 mb-1">{{ label }}</p>
+                <h3 class="text-3xl font-bold font-['Space_Grotesk'] stat-value" data-value="{{ value }}">
+                    {{ formattedValue }}
+                </h3>
+            </div>
+            <div class="w-12 h-12 rounded-xl {{ iconBg }} flex items-center justify-center group-hover:scale-110 transition-transform">
+                <i class="fas {{ icon }} text-xl {{ iconColor }}"></i>
+            </div>
+        </div>
+        
+        <!-- Trend -->
+        <div class="flex items-center gap-2">
+            {% if trend > 0 %}
+            <span class="text-green-400 text-sm flex items-center gap-1">
+                <i class="fas fa-arrow-up text-xs"></i> {{ trend }}%
+            </span>
+            {% elif trend < 0 %}
+            <span class="text-red-400 text-sm flex items-center gap-1">
+                <i class="fas fa-arrow-down text-xs"></i> {{ trend|abs }}%
+            </span>
+            {% else %}
+            <span class="text-gray-400 text-sm flex items-center gap-1">
+                <i class="fas fa-minus text-xs"></i> No change
+            </span>
+            {% endif %}
+            <span class="text-gray-500 text-sm">vs {{ period }}</span>
+        </div>
+        
+        <!-- Sparkline -->
+        {% if sparkline_data %}
+        <div class="mt-4">
+            <canvas id="sparkline-{{ id }}" height="40" class="w-full"></canvas>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Hover Indicator Line -->
+    <div class="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-400 to-purple-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
+</div>

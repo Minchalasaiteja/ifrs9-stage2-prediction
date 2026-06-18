@@ -25,6 +25,7 @@
 </p>
 
 
+https://github.com/user-attachments/assets/999432b5-799a-4ae9-bb72-a480ad602642
 
 ```bash
 git clone https://github.com/Minchalasaiteja/IFRS-9-stage2-prediction.git

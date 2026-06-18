@@ -2,6 +2,13 @@
 
 <p align="center"> <img src="https://img.shields.io/badge/version-3.0.0-blue?style=for-the-badge" alt="Version 3.0.0"> <img src="https://img.shields.io/badge/python-3.11+-green?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.11+"> <img src="https://img.shields.io/badge/FastAPI-0.109+-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI"> <img src="https://img.shields.io/badge/MongoDB-7.0-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB"> <img src="https://img.shields.io/badge/license-MIT-brightgreen?style=for-the-badge" alt="License MIT"> </p><p align="center"> <img src="https://img.shields.io/badge/IFRS_9-Compliant-00F0FF?style=flat-square" alt="IFRS 9 Compliant"> <img src="https://img.shields.io/badge/XGBoost-Powered-FF6F00?style=flat-square&logo=xgboost&logoColor=white" alt="XGBoost"> <img src="https://img.shields.io/badge/LightGBM-Ensemble-00BFFF?style=flat-square&logo=lightgbm&logoColor=white" alt="LightGBM"> <img src="https://img.shields.io/badge/JWT-Auth-000000?style=flat-square&logo=jsonwebtokens&logoColor=white" alt="JWT Auth"> <img src="https://img.shields.io/badge/WebSocket-Real--time-010101?style=flat-square&logo=socket.io&logoColor=white" alt="WebSocket"> </p>
 
+<p align="center">
+  <a href="https://github.com/user-attachments/assets/999432b5-799a-4ae9-bb72-a480ad602642">
+    <img src="https://img.shields.io/badge/Demo-Watch_Video-success?style=for-the-badge&logo=github" alt="Live Demo">
+  </a>
+</p>
+
+
 # Architecture Overview
 <p align="center">
   <img width="1000" height="800" alt="IFRS_9_Early_Warning_System" src="IFRS_9_Early_Warning_System.png" />
@@ -17,6 +24,8 @@
   <img width="1000" height="800" alt="Predicting_IFRS_9_Portfolio_Migration" src="Predicting_IFRS_9_Portfolio_Migration.png" />
 </p>
 
+
+https://github.com/user-attachments/assets/999432b5-799a-4ae9-bb72-a480ad602642
 
 ```bash
 git clone https://github.com/Minchalasaiteja/IFRS-9-stage2-prediction.git

@@ -787,6 +787,7 @@
       ws.onopen = () => {
         console.log('WebSocket connected for monitoring');
         ws.send(JSON.stringify({ type: 'subscribe_metrics' }));
+        ws.send(JSON.stringify({ type: 'subscribe_predictions' }));
         ws.send(JSON.stringify({ type: 'request_metrics' }));
       };
       
@@ -815,24 +816,15 @@
       if (!data) return;
 
       // Use available live metrics from websocket snapshots or periodic updates
-      const totalPredictions = data.total_predictions ?? data.total_connections ?? 0;
+      if (data.total_predictions !== undefined && data.total_predictions > 0) {
+          // Keep count from initial fetch or live events
+      }
       const activeConnections = data.active_connections ?? data.active_users ?? data.active_users_count ?? 0;
       const avgLatency = data.avg_latency_ms ?? data.avg_latency ?? data.system_metrics?.cpu?.percent ?? 0;
 
-      animateValue('totalPredictions', totalPredictions);
       animateValue('activeConnections', activeConnections);
-      animateValue('avgLatency', `${Math.round(avgLatency)}ms`);
-
-      if (window.predictionRateChart && Array.isArray(data.prediction_rate)) {
-        predictionRateChart.data.labels.push(new Date().toLocaleTimeString());
-        predictionRateChart.data.datasets[0].data.push(data.prediction_rate[data.prediction_rate.length - 1]?.count ?? 0);
-
-        if (predictionRateChart.data.labels.length > 20) {
-          predictionRateChart.data.labels.shift();
-          predictionRateChart.data.datasets[0].data.shift();
-        }
-
-        predictionRateChart.update('none');
+      if (avgLatency > 0 || typeof avgLatency === 'string') {
+          animateValue('avgLatency', `${Math.round(parseFloat(avgLatency) || 0)}ms`);
       }
     }
     
@@ -870,6 +862,52 @@
         duration: 1,
         ease: 'power2.out'
       });
+
+      // Increment total predictions dynamically
+      const totalElement = document.getElementById('totalPredictions');
+      if (totalElement) {
+          const currentTotal = parseInt(totalElement.textContent.replace(/,/g, '')) || 0;
+          animateValue('totalPredictions', currentTotal + 1);
+      }
+      
+      // Bump the prediction rate chart dynamically
+      if (window.predictionRateChart) {
+          const chart = window.predictionRateChart;
+          if (chart.data.labels.length > 0) {
+              const lastIdx = chart.data.datasets[0].data.length - 1;
+              chart.data.datasets[0].data[lastIdx]++;
+              chart.update('none');
+          }
+      }
+      
+      // Update latency distribution chart dynamically
+      if (window.latencyChart && latency !== '--') {
+          let index = 4; // >500ms
+          const latVal = parseFloat(latency);
+          if (latVal < 50) index = 0;
+          else if (latVal < 100) index = 1;
+          else if (latVal < 250) index = 2;
+          else if (latVal < 500) index = 3;
+          
+          window.latencyChart.data.datasets[0].data[index]++;
+          window.latencyChart.update('none');
+      }
+      
+      // Update Risk Distribution dynamically
+      if (window.riskChart && riskTier) {
+          const riskMap = {
+              'Very Low': 0,
+              'Low': 1,
+              'Medium': 2,
+              'High': 3,
+              'Very High': 4
+          };
+          const idx = riskMap[riskTier];
+          if (idx !== undefined) {
+              window.riskChart.data.datasets[0].data[idx]++;
+              window.riskChart.update('none');
+          }
+      }
     }
     
     // ===== CHART INITIALIZATION =====

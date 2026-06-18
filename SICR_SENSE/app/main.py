@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from bson import ObjectId
 
-from fastapi import FastAPI, Request, Depends, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, Depends, WebSocket, WebSocketDisconnect, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -116,17 +116,21 @@ def parse_object_id(value: str):
         return ObjectId(value)
     except Exception:
         return value
-
 async def get_optional_user(request: Request):
     token = request.cookies.get("access_token")
+    if not token:
+        auth_header = request.headers.get("authorization")
+        if auth_header and auth_header.lower().startswith("bearer "):
+            token = auth_header.split(" ", 1)[1]
     if not token:
         return None
     try:
         payload = JWTHandler.decode_token(token)
         user_id = payload.get("sub")
         if user_id:
-            user = await db.users.find_one({"_id": parse_object_id(user_id)})
-            return user
+            return await db.users.find_one({"_id": parse_object_id(user_id)})
+    except Exception:
+        return None
     except Exception:
         return None
 
@@ -363,8 +367,11 @@ except Exception as e:
     model_service = None
 
 @app.post("/api/v1/predict")
-async def predict_endpoint(request: Request):
+async def predict_endpoint(request: Request, background_tasks: BackgroundTasks):
     """Prediction endpoint used by the Dashboard UI"""
+    import time
+    from datetime import datetime
+    start_time = time.time()
     if model_service is None:
         return JSONResponse(status_code=503, content={"success": False, "detail": "Prediction service unavailable"})
     data = await request.json()
@@ -372,11 +379,33 @@ async def predict_endpoint(request: Request):
     if loans is None:
         loans = [data]
     results = model_service.predict(loans)
+    latency = time.time() - start_time
+    
+    user = await get_optional_user(request)
+    user_id = str(user["_id"]) if user else "anonymous"
+
+    for i, result in enumerate(results):
+        result["processing_time_ms"] = round(latency * 1000, 2)
+        result["timestamp"] = datetime.utcnow().isoformat()
+        
+        # Save to DB via predictions router util
+        from .routes.predictions import save_prediction_to_db
+        background_tasks.add_task(
+            save_prediction_to_db,
+            user_id,
+            loans[i],
+            result,
+            latency
+        )
+        background_tasks.add_task(ws_manager.broadcast_prediction, result)
     return {"success": True, "data": {"predictions": results}}
 
 @app.post("/api/v1/predict/batch")
-async def predict_batch_endpoint(request: Request):
+async def predict_batch_endpoint(request: Request, background_tasks: BackgroundTasks):
     """Batch prediction endpoint"""
+    import time
+    from datetime import datetime
+    start_time = time.time()
     if model_service is None:
         return JSONResponse(status_code=503, content={"success": False, "detail": "Prediction service unavailable"})
     data = await request.json()
@@ -384,6 +413,24 @@ async def predict_batch_endpoint(request: Request):
     if not isinstance(loans, list):
         return JSONResponse(status_code=400, content={"success": False, "detail": "Batch payload must be an array of loan objects"})
     results = model_service.predict(loans)
+    latency = time.time() - start_time
+    
+    user = await get_optional_user(request)
+    user_id = str(user["_id"]) if user else "anonymous"
+
+    for i, result in enumerate(results):
+        result["processing_time_ms"] = round(latency * 1000 / len(results), 2)
+        result["timestamp"] = datetime.utcnow().isoformat()
+        
+        from .routes.predictions import save_prediction_to_db
+        background_tasks.add_task(
+            save_prediction_to_db,
+            user_id,
+            loans[i],
+            result,
+            latency / len(results)
+        )
+        background_tasks.add_task(ws_manager.broadcast_prediction, result)
     return {"success": True, "data": {"predictions": results}}
 
 @app.get("/health")

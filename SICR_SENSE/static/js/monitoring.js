@@ -33,6 +33,7 @@ class MonitoringDashboard {
             console.log('Monitoring WebSocket connected');
             this.updateConnectionStatus(true);
             this.ws.send(JSON.stringify({ type: 'subscribe_metrics' }));
+            this.ws.send(JSON.stringify({ type: 'subscribe_predictions' }));
             this.ws.send(JSON.stringify({ type: 'request_metrics' }));
         };
         
@@ -247,21 +248,13 @@ class MonitoringDashboard {
     
     updateRealTimeMetrics(data) {
         // Update counter animations
-        this.animateValue('totalPredictions', data.total_predictions || 0);
+        if (data.total_predictions !== undefined && data.total_predictions > 0) {
+            // We'll let the initial API fetch or the live prediction events increment this,
+            // to avoid overriding it with the cache size.
+        }
         this.animateValue('activeConnections', data.active_connections || 0);
-        this.animateValue('avgLatency', (data.system_metrics?.latency?.average_ms || 0) + 'ms');
-        
-        // Update prediction rate chart
-        if (this.charts.predictionRate && data.prediction_rate) {
-            const chart = this.charts.predictionRate;
-            chart.data.labels.push(new Date().toLocaleTimeString());
-            chart.data.datasets[0].data.push(data.prediction_rate);
-            
-            if (chart.data.labels.length > 30) {
-                chart.data.labels.shift();
-                chart.data.datasets[0].data.shift();
-            }
-            chart.update('none');
+        if (data.avg_latency_ms !== undefined) {
+            this.animateValue('avgLatency', data.avg_latency_ms + 'ms');
         }
         
         // Update system metrics
@@ -291,12 +284,23 @@ class MonitoringDashboard {
     updateAllMetrics(data) {
         if (!data) return;
         
-        document.getElementById('totalPredictions').textContent = 
-            (data.total_predictions || 0).toLocaleString();
-        document.getElementById('activeConnections').textContent = 
-            data.active_connections || 0;
-        document.getElementById('avgLatency').textContent = 
-            (data.latency?.average_ms || 0) + 'ms';
+        if (data.total_predictions !== undefined) {
+            document.getElementById('totalPredictions').textContent = 
+                data.total_predictions.toLocaleString();
+        }
+        
+        if (data.active_connections !== undefined) {
+            document.getElementById('activeConnections').textContent = 
+                data.active_connections;
+        }
+        
+        if (data.avg_latency_ms !== undefined) {
+            document.getElementById('avgLatency').textContent = 
+                data.avg_latency_ms + 'ms';
+        } else if (data.latency?.average_ms !== undefined) {
+            document.getElementById('avgLatency').textContent = 
+                data.latency.average_ms + 'ms';
+        }
     }
     
     addLivePrediction(prediction) {
@@ -318,6 +322,52 @@ class MonitoringDashboard {
         // Limit to 10 items
         while (container.children.length > 10) {
             container.removeChild(container.lastChild);
+        }
+        
+        // Increment total predictions dynamically
+        const totalElement = document.getElementById('totalPredictions');
+        if (totalElement) {
+            const currentTotal = parseInt(totalElement.textContent.replace(/,/g, '')) || 0;
+            this.animateValue('totalPredictions', currentTotal + 1);
+        }
+        
+        // Bump the prediction rate chart dynamically
+        if (this.charts.predictionRate) {
+            const chart = this.charts.predictionRate;
+            if (chart.data.labels.length > 0) {
+                const lastIdx = chart.data.datasets[0].data.length - 1;
+                chart.data.datasets[0].data[lastIdx]++;
+                chart.update('none');
+            }
+        }
+        
+        // Update latency distribution chart dynamically
+        if (this.charts.latencyDist && prediction.processing_time_ms !== undefined) {
+            const latency = prediction.processing_time_ms;
+            let index = 4; // >500ms
+            if (latency < 50) index = 0;
+            else if (latency < 100) index = 1;
+            else if (latency < 250) index = 2;
+            else if (latency < 500) index = 3;
+            
+            this.charts.latencyDist.data.datasets[0].data[index]++;
+            this.charts.latencyDist.update('none');
+        }
+        
+        // Update Risk Distribution dynamically
+        if (this.charts.riskDist && prediction.risk_tier) {
+            const riskMap = {
+                'Very Low': 0,
+                'Low': 1,
+                'Medium': 2,
+                'High': 3,
+                'Very High': 4
+            };
+            const idx = riskMap[prediction.risk_tier];
+            if (idx !== undefined) {
+                this.charts.riskDist.data.datasets[0].data[idx]++;
+                this.charts.riskDist.update('none');
+            }
         }
     }
     
@@ -381,8 +431,17 @@ class MonitoringDashboard {
                 }
                 
                 if (data.latency_distribution && this.charts.latencyDist) {
-                    this.charts.latencyDist.data.datasets[0].data = 
-                        data.latency_distribution.map(d => d.count);
+                    // Reset to 0
+                    const newLatData = [0, 0, 0, 0, 0];
+                    data.latency_distribution.forEach(d => {
+                        const r = d.range;
+                        if (r === '0') newLatData[0] += d.count;
+                        else if (r === '50') newLatData[1] += d.count;
+                        else if (r === '100') newLatData[2] += d.count;
+                        else if (r === '250') newLatData[3] += d.count;
+                        else newLatData[4] += d.count; // 500 or >1000
+                    });
+                    this.charts.latencyDist.data.datasets[0].data = newLatData;
                     this.charts.latencyDist.update();
                 }
             }
@@ -409,8 +468,17 @@ class MonitoringDashboard {
                         break;
                     case 'risk':
                         if (this.charts.riskDist && data.risk_distribution) {
-                            this.charts.riskDist.data.datasets[0].data = 
-                                data.risk_distribution.map(d => d.count);
+                            const newRiskData = [0, 0, 0, 0, 0];
+                            const riskMap = {
+                                'Very Low': 0, 'Low': 1, 'Medium': 2, 'High': 3, 'Very High': 4
+                            };
+                            data.risk_distribution.forEach(d => {
+                                const idx = riskMap[d.tier];
+                                if (idx !== undefined) {
+                                    newRiskData[idx] += d.count;
+                                }
+                            });
+                            this.charts.riskDist.data.datasets[0].data = newRiskData;
                             this.charts.riskDist.update();
                         }
                         break;

@@ -173,13 +173,35 @@ async def get_prediction_history(
     try:
         skip = (page - 1) * limit
         
-        predictions = await db.predictions.find(
+        raw_predictions = await db.predictions.find(
             {"user_id": str(current_user["_id"])}
         ).sort("timestamp", -1).skip(skip).limit(limit).to_list(length=limit)
         
         total = await db.predictions.count_documents(
             {"user_id": str(current_user["_id"])}
         )
+        
+        # Flatten and stringify ObjectIds for the frontend
+        predictions = []
+        for pred in raw_predictions:
+            flat_pred = {}
+            # Output holds the main prediction details
+            if "output" in pred and isinstance(pred["output"], dict):
+                flat_pred.update(pred["output"])
+            # Input holds original loan data like loan_id
+            if "input" in pred and isinstance(pred["input"], dict):
+                # Only fallback to input's loan_id if output doesn't have it
+                if "loan_id" not in flat_pred and "loan_id" in pred["input"]:
+                    flat_pred["loan_id"] = pred["input"]["loan_id"]
+            
+            # Map top-level DB fields
+            flat_pred["_id"] = str(pred["_id"])
+            if "latency_ms" in pred:
+                flat_pred["processing_time_ms"] = pred["latency_ms"]
+            if "timestamp" in pred:
+                flat_pred["timestamp"] = pred["timestamp"].isoformat() if isinstance(pred["timestamp"], datetime) else pred["timestamp"]
+            
+            predictions.append(flat_pred)
         
         return {
             "predictions": predictions,

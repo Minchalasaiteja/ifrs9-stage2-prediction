@@ -8,6 +8,8 @@ from collections import defaultdict
 import time
 import psutil
 import os
+from jose import jwt
+from bson import ObjectId
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +44,7 @@ class WebSocketManager:
         self.metrics_cache: Dict[str, Any] = {
             "prediction_rate": [],
             "latency_data": [],
-            "error_rate": [],
+            "error_rate": 0,
             "active_users": 0,
             "system_metrics": {}
         }
@@ -51,17 +53,64 @@ class WebSocketManager:
         self.background_tasks: Set[asyncio.Task] = set()
         self.metrics_broadcast_task: Optional[asyncio.Task] = None
         self.system_metrics_task: Optional[asyncio.Task] = None
+        
+        # Database reference (will be set later)
+        self.db = None
+        
+        # Background tasks will be started lazily or during startup
+    
+    def set_database(self, db):
+        """Set database reference"""
+        self.db = db
     
     def start_background_tasks(self):
         """Start background tasks for metrics collection and broadcasting"""
-        self.metrics_broadcast_task = asyncio.create_task(self.broadcast_metrics_loop())
-        self.system_metrics_task = asyncio.create_task(self.collect_system_metrics())
-        
-        self.background_tasks.add(self.metrics_broadcast_task)
-        self.background_tasks.add(self.system_metrics_task)
+        try:
+            if self.metrics_broadcast_task is None or self.metrics_broadcast_task.done():
+                self.metrics_broadcast_task = asyncio.create_task(self.broadcast_metrics_loop())
+                self.background_tasks.add(self.metrics_broadcast_task)
+            
+            if self.system_metrics_task is None or self.system_metrics_task.done():
+                self.system_metrics_task = asyncio.create_task(self.collect_system_metrics())
+                self.background_tasks.add(self.system_metrics_task)
+        except RuntimeError:
+            logger.debug("Could not start background tasks: no running event loop")
     
-    async def connect(self, websocket: WebSocket, user: Optional[Dict] = None):
+    async def authenticate(self, token: Optional[str] = None) -> Optional[Dict]:
+        """Authenticate WebSocket connection using JWT token"""
+        if not token or not self.db:
+            return None
+        
+        try:
+            # Decode JWT token
+            # Assuming you have a SECRET_KEY in your settings
+            from ..config import settings
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            
+            # Get user from database
+            user = await self.db.users.find_one({"_id": ObjectId(payload.get("sub"))})
+            if user:
+                # Convert ObjectId to string for JSON serialization
+                user["_id"] = str(user["_id"])
+                return user
+        except Exception as e:
+            logger.error(f"WebSocket authentication failed: {e}")
+        
+        return None
+    
+    async def connect(self, websocket: WebSocket, token: Optional[str] = None):
         """Accept new WebSocket connection with authentication"""
+        # Ensure background tasks are running
+        self.start_background_tasks()
+        
+        # Authenticate user
+        user = await self.authenticate(token)
+        
+        # If authentication is required and fails, reject connection
+        if not user:
+            await websocket.close(code=1008, reason="Authentication required")
+            return
+        
         await websocket.accept()
         
         # Add to connection pools
@@ -71,19 +120,17 @@ class WebSocketManager:
         self.connection_metadata[websocket] = {
             "connected_at": datetime.utcnow(),
             "user": user,
-            "user_id": str(user["_id"]) if user else None,
+            "user_id": user.get("_id"),
             "subscriptions": set(),
             "messages_sent": 0,
             "messages_received": 0,
             "last_activity": datetime.utcnow()
         }
         
-        # Add to user connections if authenticated
-        if user:
-            user_id = str(user["_id"])
+        # Add to user connections
+        user_id = user.get("_id")
+        if user_id:
             self.user_connections[user_id].add(websocket)
-            
-            # Log connection
             logger.info(f"User {user.get('username', 'Unknown')} connected via WebSocket")
         
         # Update statistics
@@ -94,7 +141,7 @@ class WebSocketManager:
             self.connection_stats["active_connections"]
         )
         
-        # Send connection confirmation with system status
+        # Send connection confirmation
         await self.send_personal_message({
             "type": "connection_established",
             "timestamp": datetime.utcnow().isoformat(),
@@ -104,7 +151,7 @@ class WebSocketManager:
             "features": {
                 "prediction_streaming": True,
                 "metrics_streaming": True,
-                "admin_monitoring": user and user.get("role") == "admin",
+                "admin_monitoring": user.get("role") == "admin",
                 "max_reconnect_timeout": 30
             }
         }, websocket)
@@ -137,6 +184,13 @@ class WebSocketManager:
         # Clean up metadata
         if websocket in self.connection_metadata:
             del self.connection_metadata[websocket]
+        
+        # Update Prometheus metrics if available
+        try:
+            from .monitoring import metrics_manager
+            metrics_manager.update_active_connections(self.connection_stats["active_connections"])
+        except:
+            pass
         
         logger.info(f"WebSocket disconnected. Active: {self.connection_stats['active_connections']}")
     
@@ -194,6 +248,10 @@ class WebSocketManager:
                 
         except Exception as e:
             logger.error(f"Error handling WebSocket message: {e}")
+            await self.send_personal_message({
+                "type": "error",
+                "message": str(e)
+            }, websocket)
     
     async def subscribe_to_predictions(self, websocket: WebSocket):
         """Subscribe to real-time prediction updates"""
@@ -352,6 +410,12 @@ class WebSocketManager:
         """Background task to broadcast metrics periodically"""
         while True:
             try:
+                await asyncio.sleep(5)  # Broadcast every 5 seconds
+                
+                # Check if we have subscribers
+                if not self.metrics_subscribers and not self.admin_subscribers:
+                    continue
+                
                 # Prepare metrics update
                 metrics_update = {
                     "active_connections": self.connection_stats["active_connections"],
@@ -366,9 +430,8 @@ class WebSocketManager:
                     "avg_latency_ms": round(
                         sum((item.get("latency") or 0) for item in self.metrics_cache.get("prediction_rate", [])) /
                         max(1, len(self.metrics_cache.get("prediction_rate", [])))
-                        , 2
                     ),
-                    "prediction_rate": self.metrics_cache.get("prediction_rate", [])
+                    "prediction_rate": self.metrics_cache.get("prediction_rate", [])[-10:]  # Last 10
                 }
                 
                 # Broadcast to metrics subscribers
@@ -386,12 +449,12 @@ class WebSocketManager:
                         "connection_details": [
                             {
                                 "connection_id": id(ws),
-                                "connected_at": meta.get("connected_at", "").isoformat(),
+                                "connected_at": meta.get("connected_at", datetime.utcnow()).isoformat(),
                                 "user": meta.get("user", {}).get("username", "Anonymous"),
                                 "subscriptions": list(meta.get("subscriptions", [])),
                                 "messages_sent": meta.get("messages_sent", 0)
                             }
-                            for ws, meta in self.connection_metadata.items()
+                            for ws, meta in list(self.connection_metadata.items())[:10]  # Limit to 10
                         ]
                     }
                     await self.broadcast_admin_update(admin_update)
@@ -405,13 +468,13 @@ class WebSocketManager:
                 
             except Exception as e:
                 logger.error(f"Error in metrics broadcast loop: {e}")
-            
-            await asyncio.sleep(5)  # Broadcast every 5 seconds
     
     async def collect_system_metrics(self):
         """Background task to collect system performance metrics"""
         while True:
             try:
+                await asyncio.sleep(10)  # Collect every 10 seconds
+                
                 # Collect system metrics
                 cpu_percent = psutil.cpu_percent(interval=None)
                 memory = psutil.virtual_memory()
@@ -454,32 +517,53 @@ class WebSocketManager:
                     total = len(recent_predictions)
                     self.metrics_cache["error_rate"] = (errors / total) * 100 if total > 0 else 0
                 
+                # Update system metrics in Prometheus
+                try:
+                    from .monitoring import metrics_manager
+                    metrics_manager.update_system_metrics()
+                except:
+                    pass
+                
             except Exception as e:
                 logger.error(f"Error collecting system metrics: {e}")
-            
-            await asyncio.sleep(10)  # Collect every 10 seconds
     
     def get_system_status(self) -> Dict[str, Any]:
         """Get current system status"""
-        return {
-            "status": "healthy" if self.connection_stats["active_connections"] > 0 else "idle",
-            "uptime_seconds": time.time() - psutil.boot_time(),
-            "active_connections": self.connection_stats["active_connections"],
-            "peak_connections": self.connection_stats["peak_connections"],
-            "total_messages_processed": self.connection_stats["messages_sent"] + self.connection_stats["messages_received"],
-            "active_subscriptions": {
-                "predictions": len(self.prediction_subscribers),
-                "metrics": len(self.metrics_subscribers),
-                "admin": len(self.admin_subscribers)
-            },
-            "memory_usage": f"{psutil.Process().memory_percent():.1f}%"
-        }
+        try:
+            return {
+                "status": "healthy" if self.connection_stats["active_connections"] > 0 else "idle",
+                "uptime_seconds": time.time() - psutil.boot_time(),
+                "active_connections": self.connection_stats["active_connections"],
+                "peak_connections": self.connection_stats["peak_connections"],
+                "total_messages_processed": self.connection_stats["messages_sent"] + self.connection_stats["messages_received"],
+                "active_subscriptions": {
+                    "predictions": len(self.prediction_subscribers),
+                    "metrics": len(self.metrics_subscribers),
+                    "admin": len(self.admin_subscribers)
+                },
+                "memory_usage": f"{psutil.Process().memory_percent():.1f}%"
+            }
+        except:
+            return {
+                "status": "unknown",
+                "active_connections": self.connection_stats["active_connections"],
+                "active_subscriptions": {
+                    "predictions": len(self.prediction_subscribers),
+                    "metrics": len(self.metrics_subscribers),
+                    "admin": len(self.admin_subscribers)
+                }
+            }
     
     async def cleanup(self):
         """Clean up resources on shutdown"""
         # Cancel background tasks
         for task in self.background_tasks:
-            task.cancel()
+            if not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
         
         # Close all connections
         for websocket in self.active_connections.copy():

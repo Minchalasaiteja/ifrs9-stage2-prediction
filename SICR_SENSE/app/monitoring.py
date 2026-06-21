@@ -136,7 +136,22 @@ class MetricsManager:
         # Start background tasks
         self._start_background_tasks()
         
+        # Initialize Prometheus metrics with default values
+        self._initialize_metrics()
+        
         logger.info("MetricsManager initialized")
+    
+    def _initialize_metrics(self):
+        """Initialize Prometheus metrics with default values"""
+        try:
+            DAILY_PREDICTIONS.set(0)
+            ACTIVE_WEBSOCKETS.set(0)
+            ACTIVE_USERS.set(0)
+            CACHE_HIT_RATIO.set(0)
+            SYSTEM_MEMORY_USAGE.set(0)
+            SYSTEM_CPU_USAGE.set(0)
+        except Exception as e:
+            logger.error(f"Failed to initialize metrics: {e}")
     
     def _setup_loggers(self):
         """Setup structured logging"""
@@ -170,35 +185,49 @@ class MetricsManager:
     
     def _start_background_tasks(self):
         """Start background monitoring tasks"""
-        # Run hourly stats reset
-        self._schedule_hourly_reset()
+        # Run hourly stats reset in background thread
+        thread = threading.Thread(target=self._hourly_reset_loop, daemon=True)
+        thread.start()
+        
+        # Run system metrics update in background thread
+        metrics_thread = threading.Thread(target=self._system_metrics_loop, daemon=True)
+        metrics_thread.start()
     
-    def _schedule_hourly_reset(self):
-        """Schedule hourly statistics reset"""
-        def reset_hourly():
-            while True:
-                now = datetime.utcnow()
-                next_hour = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-                time_to_wait = (next_hour - now).total_seconds()
+    def _hourly_reset_loop(self):
+        """Hourly statistics reset loop"""
+        while True:
+            now = datetime.utcnow()
+            next_hour = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+            time_to_wait = (next_hour - now).total_seconds()
+            
+            if time_to_wait > 0:
                 time.sleep(time_to_wait)
+            
+            with self._lock:
+                # Archive current hour stats
+                current_hour = now.strftime("%Y-%m-%d %H:00")
+                stats = self.hourly_stats.get(current_hour, {"count": 0, "latency_sum": 0.0, "errors": 0})
                 
-                with self._lock:
-                    # Archive current hour stats
-                    current_hour = now.strftime("%Y-%m-%d %H:00")
-                    stats = self.hourly_stats[current_hour]
+                if stats["count"] > 0:
                     self.perf_logger.info(
                         f"Hourly stats - {current_hour}: "
                         f"predictions={stats['count']}, "
                         f"avg_latency={stats['latency_sum']/max(1, stats['count']):.3f}s, "
                         f"errors={stats['errors']}"
                     )
-                    
-                    # Reset for new hour
-                    new_hour = next_hour.strftime("%Y-%m-%d %H:00")
-                    self.hourly_stats[new_hour] = {"count": 0, "latency_sum": 0.0, "errors": 0}
-        
-        thread = threading.Thread(target=reset_hourly, daemon=True)
-        thread.start()
+                
+                # Reset for new hour
+                new_hour = next_hour.strftime("%Y-%m-%d %H:00")
+                self.hourly_stats[new_hour] = {"count": 0, "latency_sum": 0.0, "errors": 0}
+    
+    def _system_metrics_loop(self):
+        """System metrics update loop"""
+        while True:
+            try:
+                self.update_system_metrics()
+            except Exception as e:
+                logger.error(f"Failed to update system metrics: {e}")
+            time.sleep(30)  # Update every 30 seconds
     
     def log_prediction(self, input_data: Dict, prediction: Dict, latency: float):
         """Log prediction with full context and metrics"""
@@ -250,6 +279,8 @@ class MetricsManager:
             
             # Update hourly stats
             current_hour = datetime.utcnow().strftime("%Y-%m-%d %H:00")
+            if current_hour not in self.hourly_stats:
+                self.hourly_stats[current_hour] = {"count": 0, "latency_sum": 0.0, "errors": 0}
             self.hourly_stats[current_hour]["count"] += 1
             self.hourly_stats[current_hour]["latency_sum"] += latency
             
@@ -294,6 +325,8 @@ class MetricsManager:
             
             # Update hourly error stats
             current_hour = datetime.utcnow().strftime("%Y-%m-%d %H:00")
+            if current_hour not in self.hourly_stats:
+                self.hourly_stats[current_hour] = {"count": 0, "latency_sum": 0.0, "errors": 0}
             self.hourly_stats[current_hour]["errors"] += 1
             
             self.error_logger.error(f"Error recorded: {error_type} at {endpoint}")
@@ -321,27 +354,44 @@ class MetricsManager:
             
         except ImportError:
             pass
+        except Exception as e:
+            logger.error(f"Failed to update system metrics: {e}")
+    
+    def update_active_connections(self, count: int):
+        """Update active WebSocket connections count"""
+        with self._lock:
+            self.active_connections = count
+            ACTIVE_WEBSOCKETS.set(count)
+    
+    def update_active_users(self, count: int):
+        """Update active users count"""
+        with self._lock:
+            ACTIVE_USERS.set(count)
     
     def get_current_stats(self) -> Dict[str, Any]:
         """Get current statistics"""
         with self._lock:
             # Calculate average latency
+            avg_latency = 0
+            p95_latency = 0
+            p99_latency = 0
+            
             if self.recent_latencies:
-                avg_latency = sum(self.recent_latencies) / len(self.recent_latencies)
-                p95_latency = sorted(self.recent_latencies)[int(len(self.recent_latencies) * 0.95)]
-                p99_latency = sorted(self.recent_latencies)[int(len(self.recent_latencies) * 0.99)]
-            else:
-                avg_latency = 0
-                p95_latency = 0
-                p99_latency = 0
+                sorted_latencies = sorted(self.recent_latencies)
+                avg_latency = sum(sorted_latencies) / len(sorted_latencies)
+                
+                if len(sorted_latencies) > 1:
+                    p95_index = int(len(sorted_latencies) * 0.95)
+                    p99_index = int(len(sorted_latencies) * 0.99)
+                    p95_latency = sorted_latencies[min(p95_index, len(sorted_latencies) - 1)]
+                    p99_latency = sorted_latencies[min(p99_index, len(sorted_latencies) - 1)]
             
             # Calculate error rate
             recent_preds = list(self.recent_predictions)
+            error_rate = 0
             if recent_preds:
                 errors = sum(1 for p in recent_preds if p.get("risk_tier") == "Unknown")
                 error_rate = (errors / len(recent_preds)) * 100
-            else:
-                error_rate = 0
             
             # Calculate cache hit ratio
             total_cache = self.cache_hits + self.cache_misses
@@ -372,6 +422,22 @@ class MetricsManager:
                 )
             }
     
+    def get_empty_stats(self) -> Dict[str, Any]:
+        """Get empty stats for when no data is available"""
+        return {
+            "timestamp": datetime.utcnow().isoformat(),
+            "daily_predictions": 0,
+            "total_predictions": 0,
+            "active_users": 0,
+            "active_connections": 0,
+            "latency": {"average_ms": 0, "p95_ms": 0, "p99_ms": 0},
+            "error_rate": 0,
+            "cache_hit_ratio": 0,
+            "recent_predictions": [],
+            "risk_distribution": {},
+            "uptime_hours": 0
+        }
+    
     def get_prediction_trends(self, hours: int = 24) -> Dict[str, Any]:
         """Get prediction trends for specified time period"""
         with self._lock:
@@ -398,6 +464,11 @@ class MetricsManager:
                 if hourly_trends[hour]["count"] > 0:
                     hourly_trends[hour]["avg_probability"] /= hourly_trends[hour]["count"]
             
+            # Calculate risk distribution
+            risk_tiers = defaultdict(int)
+            for pred in recent:
+                risk_tiers[pred.get("risk_tier", "Unknown")] += 1
+            
             return {
                 "trends": [
                     {"hour": hour, **stats}
@@ -405,10 +476,8 @@ class MetricsManager:
                 ],
                 "summary": {
                     "total_predictions": len(recent),
-                    "avg_probability": sum(p.get("probability", 0) for p in recent) / len(recent),
-                    "risk_tiers": defaultdict(int, {
-                        p.get("risk_tier", "Unknown"): 0 for p in recent
-                    })
+                    "avg_probability": sum(p.get("probability", 0) for p in recent) / len(recent) if recent else 0,
+                    "risk_tiers": dict(risk_tiers)
                 }
             }
     

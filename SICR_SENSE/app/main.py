@@ -13,6 +13,17 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 
+# temp
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
+from fastapi.middleware.cors import CORSMiddleware
+import json
+from typing import Optional
+
+from app.websocket_handler import ws_manager
+from .database import db
+from .config import settings
+#temp
+
 from .config import settings
 from .auth.jwt_handler import JWTHandler
 from .database import db, Database
@@ -347,17 +358,7 @@ async def openapi_redirect():
 # API Endpoints (Minimal)
 # ==============================
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket endpoint for real-time updates"""
-    user = await get_user_from_ws_token(websocket)
-    await ws_manager.connect(websocket, user=user)
-    try:
-        while True:
-            data = await websocket.receive_json()
-            await ws_manager.handle_message(websocket, data)
-    except WebSocketDisconnect:
-        ws_manager.disconnect(websocket)
+
 
 try:
     from .model_service import IFRS9ModelService
@@ -511,3 +512,71 @@ async def server_error_handler(request: Request, exc):
         "message": "Something went wrong. Please try again.",
         "color": "red"
     }, status_code=500)
+
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(
+    websocket: WebSocket,
+    token: Optional[str] = Query(None)
+):
+    """WebSocket endpoint for real-time updates"""
+    # Set database reference if not set
+    if not ws_manager.db:
+        ws_manager.set_database(db)
+    
+    # Try to get token from cookies if not in query params
+    if not token:
+        token = websocket.cookies.get("access_token")
+    
+    # Connect with authentication
+    await ws_manager.connect(websocket, token)
+    
+    try:
+        while True:
+            # Receive messages
+            data = await websocket.receive_text()
+            try:
+                message = json.loads(data)
+                await ws_manager.handle_message(websocket, message)
+            except json.JSONDecodeError:
+                await ws_manager.send_personal_message({
+                    "type": "error",
+                    "message": "Invalid JSON format"
+                }, websocket)
+            except Exception as e:
+                logger.error(f"Error processing WebSocket message: {e}")
+                
+    except WebSocketDisconnect:
+        ws_manager.disconnect(websocket)
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+        ws_manager.disconnect(websocket)
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize on startup"""
+    logger.info("Starting up application...")
+    
+    # Set database reference
+    ws_manager.set_database(db)
+    
+    # Start WebSocket background tasks
+    ws_manager.start_background_tasks()
+    
+    # Create database indexes if needed
+    try:
+        await db.predictions.create_index("timestamp")
+        await db.predictions.create_index("output.risk_tier")
+        await db.audit_logs.create_index("timestamp")
+        logger.info("Database indexes created")
+    except Exception as e:
+        logger.warning(f"Could not create indexes: {e}")
+
+# Shutdown event
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up on shutdown"""
+    logger.info("Shutting down application...")
+    await ws_manager.cleanup()

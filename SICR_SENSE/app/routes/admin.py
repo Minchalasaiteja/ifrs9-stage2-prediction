@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
-from typing import List, Optional
+from fastapi import APIRouter, HTTPException, Depends, Query, Body
+from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 import logging
+from bson import ObjectId
 
 from ..database import db
 from ..auth.dependencies import get_current_user, RoleChecker
@@ -12,6 +13,22 @@ router = APIRouter()
 
 # Admin-only access
 admin_only = RoleChecker(["admin"])
+
+def to_user_dict(user: dict) -> dict:
+    return {
+        "id": str(user.get("_id")),
+        "username": user.get("username"),
+        "email": user.get("email"),
+        "first_name": user.get("first_name"),
+        "last_name": user.get("last_name"),
+        "role": user.get("role", "user"),
+        "is_active": user.get("is_active", True),
+        "is_verified": user.get("is_verified", False),
+        "two_factor_enabled": user.get("two_factor_enabled", False),
+        "last_login": user.get("last_login"),
+        "created_at": user.get("created_at"),
+        "updated_at": user.get("updated_at")
+    }
 
 @router.get("/overview", response_model=AdminStats)
 async def get_admin_overview(current_user: dict = Depends(admin_only)):
@@ -73,7 +90,7 @@ async def get_admin_overview(current_user: dict = Depends(admin_only)):
         logger.error(f"Failed to get admin overview: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/users", response_model=List[UserResponse])
+@router.get("/users")
 async def get_all_users(
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100),
@@ -108,15 +125,33 @@ async def get_all_users(
             .sort("created_at", -1) \
             .to_list(length=limit)
         
-        return users
+        return {
+            "users": [to_user_dict(user) for user in users],
+            "page": page,
+            "pages": (total + limit - 1) // limit,
+            "total": total
+        }
         
     except Exception as e:
         logger.error(f"Failed to get users: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/users/{user_id}")
+async def get_user_by_id(
+    user_id: str,
+    current_user: dict = Depends(admin_only)
+):
+    """Get a single user by ID"""
+    query_id = ObjectId(user_id) if ObjectId.is_valid(user_id) else user_id
+    user = await db.users.find_one({"_id": query_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return to_user_dict(user)
+
+
 @router.post("/users")
 async def create_user(
-    user_data: dict,
+    user_data: Dict[str, Any],
     current_user: dict = Depends(admin_only)
 ):
     """Create new user (admin only)"""
@@ -166,7 +201,7 @@ async def create_user(
 @router.put("/users/{user_id}")
 async def update_user(
     user_id: str,
-    user_data: dict,
+    user_data: Dict[str, Any],
     current_user: dict = Depends(admin_only)
 ):
     """Update user details"""
@@ -179,8 +214,9 @@ async def update_user(
         
         user_data["updated_at"] = datetime.utcnow()
         
+        query_id = ObjectId(user_id) if ObjectId.is_valid(user_id) else user_id
         result = await db.users.update_one(
-            {"_id": user_id},
+            {"_id": query_id},
             {"$set": user_data}
         )
         
@@ -209,7 +245,8 @@ async def delete_user(
 ):
     """Delete user"""
     try:
-        result = await db.users.delete_one({"_id": user_id})
+        query_id = ObjectId(user_id) if ObjectId.is_valid(user_id) else user_id
+        result = await db.users.delete_one({"_id": query_id})
         
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="User not found")

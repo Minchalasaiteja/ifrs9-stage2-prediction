@@ -16,7 +16,7 @@ class AdminPanel {
     
     async checkAdminAccess() {
         try {
-            const token = localStorage.getItem('access_token');
+            const token = getAuthToken();
             const response = await fetch('/api/v1/auth/me', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -88,7 +88,7 @@ class AdminPanel {
     }
     
     async loadSectionData(section) {
-        const token = localStorage.getItem('access_token');
+        const token = getAuthToken();
         
         try {
             switch(section) {
@@ -115,7 +115,7 @@ class AdminPanel {
     }
     
     async loadOverview() {
-        const token = localStorage.getItem('access_token');
+        const token = getAuthToken();
         const response = await fetch('/api/v1/admin/overview', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -204,15 +204,15 @@ class AdminPanel {
     }
     
     async loadUsers(page = 1) {
-        const token = localStorage.getItem('access_token');
+        const token = getAuthToken();
         const response = await fetch(`/api/v1/admin/users?page=${page}&limit=10`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
         if (response.ok) {
             const data = await response.json();
-            this.users = data;
-            this.renderUsersTable(data);
+            this.users = data.users || [];
+            this.renderUsersTable(this.users);
             this.renderPagination(data);
         }
     }
@@ -301,7 +301,7 @@ class AdminPanel {
     }
     
     async editUser(userId) {
-        const token = localStorage.getItem('access_token');
+        const token = getAuthToken();
         const response = await fetch(`/api/v1/admin/users/${userId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -351,7 +351,7 @@ class AdminPanel {
             is_active: document.getElementById('edit-status').checked
         };
         
-        const token = localStorage.getItem('access_token');
+        const token = getAuthToken();
         const url = userId ? 
             `/api/v1/admin/users/${userId}` : 
             '/api/v1/admin/users';
@@ -385,7 +385,7 @@ class AdminPanel {
             return;
         }
         
-        const token = localStorage.getItem('access_token');
+        const token = getAuthToken();
         
         try {
             const response = await fetch(`/api/v1/admin/users/${userId}`, {
@@ -407,7 +407,7 @@ class AdminPanel {
         
         if (!confirm(`Delete ${this.selectedUsers.size} selected users?`)) return;
         
-        const token = localStorage.getItem('access_token');
+        const token = getAuthToken();
         
         try {
             for (const userId of this.selectedUsers) {
@@ -426,7 +426,7 @@ class AdminPanel {
     }
     
     async loadActivity() {
-        const token = localStorage.getItem('access_token');
+        const token = getAuthToken();
         const response = await fetch('/api/v1/admin/activity?limit=20', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -471,7 +471,7 @@ class AdminPanel {
     }
     
     async loadAuditLogs() {
-        const token = localStorage.getItem('access_token');
+        const token = getAuthToken();
         const response = await fetch('/api/v1/monitoring/audit-logs?limit=20', {
             headers: { 'Authorization': `Bearer ${token}` }
         });

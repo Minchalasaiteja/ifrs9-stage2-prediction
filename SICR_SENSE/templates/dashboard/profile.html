@@ -111,7 +111,7 @@
 {% block scripts %}
 <script>
   async function loadUserProfile() {
-    const token = localStorage.getItem('access_token');
+    const token = getAuthToken();
     
     try {
       const response = await fetch('/api/v1/auth/me', {
@@ -148,7 +148,7 @@
 
   async function handleSaveContact(e) {
     e.preventDefault();
-    const token = localStorage.getItem('access_token');
+    const token = getAuthToken();
     const status = document.getElementById('contactStatus');
     
     const data = {
@@ -192,7 +192,7 @@
 
   async function handleSavePreferences(e) {
     e.preventDefault();
-    const token = localStorage.getItem('access_token');
+    const token = getAuthToken();
     const status = document.getElementById('preferencesStatus');
     
     const data = {

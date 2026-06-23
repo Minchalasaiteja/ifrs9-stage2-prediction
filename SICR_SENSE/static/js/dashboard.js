@@ -19,7 +19,7 @@ class DashboardManager {
     setupWebSocket() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws`;
-        const token = localStorage.getItem('access_token');
+        const token = getAuthToken();
         
         this.ws = new WebSocket(`${wsUrl}?token=${token}`);
         
@@ -82,7 +82,7 @@ class DashboardManager {
     
     async submitPrediction() {
         const formData = this.getFormData();
-        const token = localStorage.getItem('access_token');
+        const token = getAuthToken();
         
         try {
             this.showResultState('loading');
@@ -411,7 +411,7 @@ class DashboardManager {
             const text = await file.text();
             const data = JSON.parse(text);
             
-            const token = localStorage.getItem('access_token');
+            const token = getAuthToken();
             const response = await fetch('/api/v1/predict/batch', {
                 method: 'POST',
                 headers: {
@@ -432,7 +432,7 @@ class DashboardManager {
     
     async fetchInitialData() {
         try {
-            const token = localStorage.getItem('access_token');
+            const token = getAuthToken();
             const response = await fetch('/api/v1/stats', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -447,7 +447,7 @@ class DashboardManager {
     }
 
     async loadRecentPredictions(limit = 5) {
-        const token = localStorage.getItem('access_token');
+        const token = getAuthToken();
         const tbody = document.getElementById('history-table-body');
         if (!tbody) return;
 

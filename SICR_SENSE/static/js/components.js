@@ -227,6 +227,45 @@ function handleDropdownCheckbox(id, checkbox) {
     }));
 }
 
+// Authentication token helpers
+function getAuthToken() {
+    return localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+}
+
+function getRefreshToken() {
+    return localStorage.getItem('refresh_token') || sessionStorage.getItem('refresh_token');
+}
+
+function setAuthToken(key, value, remember = true) {
+    if (remember) {
+        localStorage.setItem(key, value);
+        sessionStorage.removeItem(key);
+    } else {
+        sessionStorage.setItem(key, value);
+        localStorage.removeItem(key);
+    }
+}
+
+function clearAuthTokens() {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    sessionStorage.removeItem('access_token');
+    sessionStorage.removeItem('refresh_token');
+}
+
+async function logout() {
+    clearAuthTokens();
+    try {
+        await fetch('/api/v1/auth/logout', {
+            method: 'POST',
+            credentials: 'include'
+        });
+    } catch (err) {
+        console.warn('Logout request failed', err);
+    }
+    window.location.href = '/login';
+}
+
 // Close dropdowns on outside click
 document.addEventListener('click', (e) => {
     if (!e.target.closest('[data-dropdown]')) {
@@ -1703,7 +1742,7 @@ document.addEventListener('click', (e) => {
 // Fetch user info and update avatar
 async function updateUserInfo() {
     try {
-        const token = localStorage.getItem('access_token');
+        const token = getAuthToken();
         if (!token) return;
         
         const response = await fetch('/api/v1/auth/me', {
@@ -1755,7 +1794,7 @@ class WebSocketStatus {
     connect() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws`;
-        const token = localStorage.getItem('access_token');
+        const token = getAuthToken();
         
         try {
             this.ws = new WebSocket(`${wsUrl}?token=${token}`);

@@ -779,6 +779,43 @@
         })();
 
         // ==========================================
+        // AUTH STORAGE HELPERS
+        // ==========================================
+        function getAuthToken() {
+            return localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+        }
+
+        function setAuthToken(key, value, remember = true) {
+            if (remember) {
+                localStorage.setItem(key, value);
+                sessionStorage.removeItem(key);
+            } else {
+                sessionStorage.setItem(key, value);
+                localStorage.removeItem(key);
+            }
+        }
+
+        function clearAuthTokens() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            sessionStorage.removeItem('access_token');
+            sessionStorage.removeItem('refresh_token');
+        }
+
+        async function logout() {
+            clearAuthTokens();
+            try {
+                await fetch('/api/v1/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+            } catch (err) {
+                console.warn('Logout request failed', err);
+            }
+            window.location.href = '/login';
+        }
+
+        // ==========================================
         // TOAST SYSTEM
         // ==========================================
         function showToast(message, type = 'info') {
@@ -1380,11 +1417,12 @@
             Nava.setRasa('shanta', 'Verifying your identity... 🧘', 2000);
             
             try {
+                const remember = document.getElementById('remember-me')?.checked ?? true;
                 const response = await fetch('/api/v1/auth/login', {
                     method: 'POST',
                     credentials: 'include',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({ username: email, password })
+                    body: new URLSearchParams({ username: email, password, remember_me: remember ? 'true' : 'false' })
                 });
                 
                 if (response.status === 403) {
@@ -1397,8 +1435,9 @@
                     }
                 } else if (response.ok) {
                     const data = await response.json();
-                    localStorage.setItem('access_token', data.access_token);
-                    localStorage.setItem('refresh_token', data.refresh_token);
+                    const remember = document.getElementById('remember-me')?.checked ?? true;
+                    setAuthToken('access_token', data.access_token, remember);
+                    setAuthToken('refresh_token', data.refresh_token, remember);
                     
                     Nava.setRasa('hasya', 'Login successful! Welcome back! 🎉', 4000);
                     celebrateWithParticles();
@@ -1480,7 +1519,8 @@
                 const email = document.getElementById('login-email').value.trim();
                 const password = document.getElementById('login-password').value;
                 
-                const formData = new URLSearchParams({ username: email, password });
+                const remember = document.getElementById('remember-me')?.checked ?? true;
+                const formData = new URLSearchParams({ username: email, password, remember_me: remember ? 'true' : 'false' });
                 formData.append('two_factor_code', code);
                 
                 const response = await fetch('/api/v1/auth/login', {
@@ -1493,7 +1533,9 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    localStorage.setItem('access_token', data.access_token);
+                    const remember = document.getElementById('remember-me')?.checked ?? true;
+                    setAuthToken('access_token', data.access_token, remember);
+                    setAuthToken('refresh_token', data.refresh_token, remember);
                     
                     Nava.setRasa('hasya', '2FA verified! Welcome! 🎉', 4000);
                     celebrateWithParticles();

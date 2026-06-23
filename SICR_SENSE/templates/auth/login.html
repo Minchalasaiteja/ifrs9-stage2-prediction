@@ -298,9 +298,7 @@
           <!-- Remember & Forgot -->
           <div class="flex items-center justify-between text-sm">
             <label class="flex items-center text-gray-400 cursor-pointer">
-              <input type="checkbox" class="mr-2 w-4 h-4 rounded border-gray-600 bg-transparent checked:bg-cyan-400 focus:ring-cyan-400">
-              Remember me
-            </label>
+              <input id="remember-me" type="checkbox" class="mr-2 w-4 h-4 rounded border-gray-600 bg-transparent checked:bg-cyan-400 focus:ring-cyan-400">
             <a href="#" onclick="showForgotPassword()" class="text-cyan-400 hover:text-cyan-300 transition-colors">Forgot password?</a>
           </div>
           
@@ -623,11 +621,12 @@
       spinner.classList.remove('hidden');
       
       try {
-        const response = await fetch('/api/v1/auth/login', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ username: email, password })
+const remember = document.getElementById('remember-me')?.checked ?? false;
+                const response = await fetch('/api/v1/auth/login', {
+                  method: 'POST',
+                  credentials: 'include',
+                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                  body: new URLSearchParams({ username: email, password, remember_me: remember ? 'true' : 'false' })
         });
         
         const data = await response.json();
@@ -731,7 +730,8 @@
       const password = document.getElementById('login-password').value;
       
       try {
-        const formData = new URLSearchParams({ username: email, password });
+        const remember = document.getElementById('remember-me')?.checked ?? false;
+        const formData = new URLSearchParams({ username: email, password, remember_me: remember ? 'true' : 'false' });
         formData.append('two_factor_code', code);
         
         const response = await fetch('/api/v1/auth/login', {

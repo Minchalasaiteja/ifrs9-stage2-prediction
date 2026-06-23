@@ -270,6 +270,35 @@ async def admin_page(request: Request):
         "request": request,
         "title": "Admin Panel - SICRSense",
         "active_page": "admin",
+        "admin_section": "overview",
+        "user": user
+    })
+
+@app.get("/admin/users", response_class=HTMLResponse)
+async def admin_users_page(request: Request):
+    """Admin user management page"""
+    user = await get_optional_user(request)
+    if not user or user.get("role") != "admin":
+        return RedirectResponse(url="/dashboard", status_code=302)
+    return templates.TemplateResponse(request, "admin/dashboard.html", {
+        "request": request,
+        "title": "Admin Users - SICRSense",
+        "active_page": "users",
+        "admin_section": "users",
+        "user": user
+    })
+
+@app.get("/admin/audit", response_class=HTMLResponse)
+async def admin_audit_page(request: Request):
+    """Admin audit logs page"""
+    user = await get_optional_user(request)
+    if not user or user.get("role") != "admin":
+        return RedirectResponse(url="/dashboard", status_code=302)
+    return templates.TemplateResponse(request, "admin/dashboard.html", {
+        "request": request,
+        "title": "Audit Logs - SICRSense",
+        "active_page": "audit",
+        "admin_section": "audit",
         "user": user
     })
 

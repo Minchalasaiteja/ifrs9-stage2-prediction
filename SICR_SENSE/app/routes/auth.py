@@ -24,14 +24,18 @@ router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
 
-def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
+def set_auth_cookies(response: Response, access_token: str, refresh_token: str, remember_me: bool = False):
+    access_max_age = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    refresh_max_age = settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400 if remember_me else None
+
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
         secure=settings.PRODUCTION,
         samesite="lax",
-        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        max_age=access_max_age,
+        expires=access_max_age
     )
     response.set_cookie(
         key="refresh_token",
@@ -39,11 +43,12 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
         httponly=True,
         secure=settings.PRODUCTION,
         samesite="lax",
-        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400
+        max_age=refresh_max_age,
+        expires=refresh_max_age if refresh_max_age else None
     )
 
 @router.post("/signup", response_model=TokenResponse)
-async def signup(user_data: UserCreate, background_tasks: BackgroundTasks):
+async def signup(user_data: UserCreate, request: Request, background_tasks: BackgroundTasks):
     """Register new user"""
     try:
         # Check if user exists
@@ -99,12 +104,16 @@ async def signup(user_data: UserCreate, background_tasks: BackgroundTasks):
             user_data.username
         )
         
+        client_ip = request.client.host if request.client else "Unknown"
+        user_agent = request.headers.get("user-agent", "Unknown")
+
         # Log audit
         await db.audit_logs.insert_one({
             "user_id": user_id,
             "action": "signup",
             "timestamp": datetime.utcnow(),
-            "ip_address": "client_ip"  # Get from request
+            "ip_address": client_ip,
+            "user_agent": user_agent
         })
         
         response = JSONResponse(content={
@@ -119,39 +128,53 @@ async def signup(user_data: UserCreate, background_tasks: BackgroundTasks):
             }
         })
         set_auth_cookies(response, access_token, refresh_token)
+        await db.sessions.insert_one({
+            "user_id": user_id,
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "remember_me": False,
+            "ip_address": client_ip,
+            "user_agent": user_agent,
+            "created_at": datetime.utcnow(),
+            "last_activity": datetime.utcnow(),
+            "expires_at": datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        })
         return response
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Signup failed: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Unable to complete signup at this time")
 
 @router.post("/login", response_model=TokenResponse)
 async def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
-    two_factor_code: Optional[str] = Form(None)
+    two_factor_code: Optional[str] = Form(None),
+    remember_me: Optional[bool] = Form(False)
 ):
     """User login with optional 2FA"""
-    # Find user
-    user = await db.users.find_one({"email": form_data.username})
-    
+    # Find user by email or username
+    user = await db.users.find_one({"$or": [{"email": form_data.username}, {"username": form_data.username}]})
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    
+
     # Check account lock
     if user.get("locked_until") and user["locked_until"] > datetime.utcnow():
         raise HTTPException(
             status_code=423,
             detail="Account temporarily locked. Try again later."
         )
-    
+
     # Verify password
     if not JWTHandler.verify_password(form_data.password, user["password_hash"]):
         # Increment failed attempts
         attempts = user.get("login_attempts", 0) + 1
         update_data = {"login_attempts": attempts}
         
-        if attempts >= 5:
-            update_data["locked_until"] = datetime.utcnow() + timedelta(minutes=15)
+        if attempts >= settings.MAX_LOGIN_ATTEMPTS:
+            update_data["locked_until"] = datetime.utcnow() + timedelta(minutes=settings.ACCOUNT_LOCKOUT_MINUTES)
         
         await db.users.update_one(
             {"_id": user["_id"]},
@@ -189,15 +212,9 @@ async def login(
         }
     )
     
-    # Create session
-    await db.sessions.insert_one({
-        "user_id": user_id,
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "created_at": datetime.utcnow(),
-        "expires_at": datetime.utcnow() + timedelta(days=7)
-    })
-    
+    client_ip = request.client.host if request.client else "Unknown"
+    user_agent = request.headers.get("user-agent", "Unknown")
+
     response = JSONResponse(content={
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -210,7 +227,23 @@ async def login(
             "two_factor_enabled": user.get("two_factor_enabled", False)
         }
     })
-    set_auth_cookies(response, access_token, refresh_token)
+    set_auth_cookies(response, access_token, refresh_token, remember_me=remember_me)
+
+    await db.sessions.insert_one({
+        "user_id": user_id,
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "remember_me": bool(remember_me),
+        "ip_address": client_ip,
+        "user_agent": user_agent,
+        "created_at": datetime.utcnow(),
+        "last_activity": datetime.utcnow(),
+        "expires_at": datetime.utcnow() + (
+            timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+            if remember_me else
+            timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        )
+    })
     return response
 
 @router.post("/2fa/setup")
@@ -365,6 +398,7 @@ async def resend_verification(email: str, background_tasks: BackgroundTasks):
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_access_token(
+    request: Request,
     refresh_token: Optional[str] = Cookie(None),
     body: Optional[RefreshToken] = Body(None)
 ):
@@ -385,6 +419,15 @@ async def refresh_access_token(
     if not session:
         raise HTTPException(status_code=401, detail="Session not found")
 
+    now = datetime.utcnow()
+    if session.get("expires_at") and session["expires_at"] < now:
+        await db.sessions.delete_one({"_id": session["_id"]})
+        raise HTTPException(status_code=401, detail="Session expired")
+
+    if session.get("last_activity") and session["last_activity"] < now - timedelta(minutes=settings.SESSION_TIMEOUT_MINUTES):
+        await db.sessions.delete_one({"_id": session["_id"]})
+        raise HTTPException(status_code=401, detail="Session timed out")
+
     user_query_id = ObjectId(user_id) if ObjectId.is_valid(user_id) else user_id
     user = await db.users.find_one({"_id": user_query_id})
     if not user:
@@ -392,6 +435,7 @@ async def refresh_access_token(
 
     access_token = JWTHandler.create_access_token({"sub": user_id, "role": user.get("role", "user")})
     new_refresh_token = JWTHandler.create_refresh_token({"sub": user_id})
+    remember_me = bool(session.get("remember_me", False))
 
     await db.sessions.update_one(
         {"_id": session["_id"]},
@@ -399,8 +443,12 @@ async def refresh_access_token(
             "$set": {
                 "access_token": access_token,
                 "refresh_token": new_refresh_token,
-                "created_at": datetime.utcnow(),
-                "expires_at": datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+                "last_activity": datetime.utcnow(),
+                "expires_at": datetime.utcnow() + (
+                    timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+                    if remember_me else
+                    timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+                )
             }
         }
     )
@@ -416,7 +464,7 @@ async def refresh_access_token(
             "role": user.get("role", "user")
         }
     })
-    set_auth_cookies(response, access_token, new_refresh_token)
+    set_auth_cookies(response, access_token, new_refresh_token, remember_me=remember_me)
     return response
 
 @router.post("/change-password")
@@ -575,7 +623,14 @@ async def update_preferences(
 @router.post("/logout")
 async def logout(request: Request):
     """Logout and clear auth cookies"""
+    access_token = request.cookies.get("access_token")
     refresh_token = request.cookies.get("refresh_token")
+    auth_header = request.headers.get("authorization")
+    if not access_token and auth_header and auth_header.lower().startswith("bearer "):
+        access_token = auth_header.split(" ", 1)[1].strip()
+
+    if access_token:
+        await db.sessions.delete_many({"access_token": access_token})
     if refresh_token:
         await db.sessions.delete_many({"refresh_token": refresh_token})
 

@@ -1,8 +1,10 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from typing import Optional, List
+from datetime import datetime, timedelta
 from ..database import db
 from .jwt_handler import JWTHandler
+from ..config import settings
 from bson import ObjectId
 import logging
 
@@ -10,32 +12,52 @@ logger = logging.getLogger(__name__)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> Optional[dict]:
+async def get_current_user(token: str = Depends(oauth2_scheme), request: Request = None) -> Optional[dict]:
     """Get current authenticated user from JWT token"""
+    token = token or (request.cookies.get("access_token") if request else None)
     if not token:
         return None
-    
+
     try:
+        session = await db.sessions.find_one({"access_token": token})
+        if not session:
+            return None
+
+        now = datetime.utcnow()
+        if session.get("expires_at") and session["expires_at"] < now:
+            await db.sessions.delete_one({"_id": session["_id"]})
+            return None
+
+        timeout_minutes = settings.SESSION_TIMEOUT_MINUTES
+        if session.get("last_activity") and session["last_activity"] < now - timedelta(minutes=timeout_minutes):
+            await db.sessions.delete_one({"_id": session["_id"]})
+            return None
+
         payload = JWTHandler.decode_token(token)
         user_id = payload.get("sub")
-        
+
         if user_id is None:
             return None
-        
+
         query_id = ObjectId(user_id) if ObjectId.is_valid(user_id) else user_id
         user = await db.users.find_one({"_id": query_id})
-        
+
         if user is None:
             return None
-        
+
         if not user.get("is_active", True):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Account is deactivated"
             )
-        
+
+        await db.sessions.update_one(
+            {"_id": session["_id"]},
+            {"$set": {"last_activity": now}}
+        )
+
         return user
-        
+
     except HTTPException:
         raise
     except Exception as e:

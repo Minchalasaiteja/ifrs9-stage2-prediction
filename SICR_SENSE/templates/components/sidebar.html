@@ -69,17 +69,17 @@
             <span class="text-xs text-gray-600 uppercase tracking-wider font-semibold px-3">Administration</span>
         </div>
         
-        <a href="/admin" class="nav-item {{ 'active' if active_page == 'admin' else '' }}">
+        <a href="/admin" class="nav-item {{ 'active' if active_page == 'admin' else '' }}" data-section="overview">
             <i class="fas fa-shield-haltered w-5"></i>
             <span>Admin Panel</span>
         </a>
         
-        <a href="/admin/users" class="nav-item {{ 'active' if active_page == 'users' else '' }}">
+        <a href="/admin/users" class="nav-item {{ 'active' if active_page == 'users' else '' }}" data-section="users">
             <i class="fas fa-users w-5"></i>
             <span>User Management</span>
         </a>
         
-        <a href="/admin/audit" class="nav-item {{ 'active' if active_page == 'audit' else '' }}">
+        <a href="/admin/audit" class="nav-item {{ 'active' if active_page == 'audit' else '' }}" data-section="audit">
             <i class="fas fa-clipboard-list w-5"></i>
             <span>Audit Logs</span>
         </a>

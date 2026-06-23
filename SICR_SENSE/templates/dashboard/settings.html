@@ -63,7 +63,7 @@
 <script>
   async function loadUserEmail() {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = getAuthToken();
       const response = await fetch('/api/v1/auth/me', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -86,7 +86,7 @@
     const newPassword = document.getElementById('newPassword').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
     const status = document.getElementById('passwordStatus');
-    const token = localStorage.getItem('access_token');
+    const token = getAuthToken();
 
     if (newPassword !== confirmPassword) {
       status.textContent = 'Passwords do not match';
@@ -141,7 +141,7 @@
     const newEmail = document.getElementById('newEmail').value;
     const password = document.getElementById('emailPassword').value;
     const status = document.getElementById('emailStatus');
-    const token = localStorage.getItem('access_token');
+    const token = getAuthToken();
 
     if (!newEmail.includes('@')) {
       status.textContent = 'Please enter a valid email address';

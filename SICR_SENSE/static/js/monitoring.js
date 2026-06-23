@@ -36,7 +36,7 @@ class MonitoringDashboard {
     
     setupWebSocket() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const token = localStorage.getItem('access_token');
+        const token = getAuthToken();
         const wsUrl = `${protocol}//${window.location.host}/ws${token ? `?token=${token}` : ''}`;
         
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -689,7 +689,7 @@ class MonitoringDashboard {
     
     async fetchInitialData() {
         try {
-            const token = localStorage.getItem('access_token');
+            const token = getAuthToken();
             const timeRange = document.getElementById('timeRange')?.value || '24h';
             
             const response = await fetch(`/api/v1/monitoring/overview?time_range=${timeRange}`, {
@@ -724,7 +724,7 @@ class MonitoringDashboard {
     
     async loadSectionData(section) {
         try {
-            const token = localStorage.getItem('access_token');
+            const token = getAuthToken();
             const timeRange = document.getElementById('timeRange')?.value || '24h';
             
             const response = await fetch(`/api/v1/monitoring/${section}?time_range=${timeRange}`, {

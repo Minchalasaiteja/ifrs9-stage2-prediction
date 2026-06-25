@@ -57,8 +57,7 @@
   
   async function processBatchFile(file) {
     const status = document.getElementById('batchStatus');
-    const token = getAuthToken();
-    const processingInfo = document.getElementById('processingInfo');
+        const processingInfo = document.getElementById('processingInfo');
 
     if (!file) return;
 
@@ -105,7 +104,6 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ loans: loans })
       });

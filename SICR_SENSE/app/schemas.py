@@ -42,7 +42,7 @@ class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=50, pattern=r'^[a-zA-Z0-9_]+$')
     email: str = Field(..., pattern=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
     first_name: str = Field(..., min_length=1, max_length=50)
-    last_name: str = Field(..., min_length=1, max_length=50)
+    last_name: Optional[str] = Field(None, min_length=1, max_length=50)
     company: Optional[str] = Field(None, max_length=100)
 
 class UserCreate(UserBase):
@@ -79,6 +79,7 @@ class UserResponse(UserBase):
     last_login: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
+    last_name: Optional[str] = None
     
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 

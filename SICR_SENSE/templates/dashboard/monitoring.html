@@ -314,47 +314,6 @@ input:checked + .toggle-slider:before {
 {% endblock %}
 
 {% block content %}
-<!-- Header -->
-<header class="sticky top-0 z-40 glass-card rounded-none border-l-0 border-r-0 border-t-0 px-8 py-4">
-    <div class="flex items-center justify-between flex-wrap gap-4">
-        <div>
-            <h2 class="text-2xl font-bold font-['Space_Grotesk']">Live System Monitoring</h2>
-            <p class="text-sm text-gray-500 mt-1">Real-time metrics and analytics</p>
-        </div>
-        
-        <div class="flex items-center gap-4 flex-wrap">
-            <!-- WebSocket Status -->
-            <span id="ws-status-badge" class="px-3 py-1 rounded-full text-xs bg-red-400/10 text-red-400">
-                <i class="fas fa-circle text-[6px] mr-1"></i> Connecting...
-            </span>
-            
-            <!-- Auto-refresh Toggle -->
-            <div class="flex items-center gap-2">
-                <span class="text-sm text-gray-400">Auto-refresh</span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="autoRefresh" checked>
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-            
-            <!-- Time Range Selector -->
-            <select id="timeRange" class="neo-element px-4 py-2 rounded-xl text-sm text-gray-300 border border-gray-700 bg-transparent">
-                <option value="5m">Last 5 minutes</option>
-                <option value="15m">Last 15 minutes</option>
-                <option value="1h">Last 1 hour</option>
-                <option value="6h">Last 6 hours</option>
-                <option value="24h" selected>Last 24 hours</option>
-                <option value="7d">Last 7 days</option>
-            </select>
-            
-            <!-- Refresh Button -->
-            <button onclick="refreshData()" class="neo-element p-3 rounded-xl hover:border-cyan-400 transition-all">
-                <i class="fas fa-sync-alt text-gray-400 hover:text-cyan-400"></i>
-            </button>
-        </div>
-    </div>
-</header>
-
 <div class="flex gap-6 p-6">
     <!-- Sidebar -->
     <nav class="sidebar rounded-2xl p-4 w-56 flex-shrink-0 h-fit sticky top-24">
@@ -584,6 +543,22 @@ input:checked + .toggle-slider:before {
                         </tbody>
                     </table>
                 </div>
+                <!-- Pagination & Controls -->
+                <div class="flex items-center justify-between mt-4">
+                    <div class="flex items-center gap-3">
+                        <button id="predPrev" class="px-3 py-1 rounded border border-gray-700 text-sm">Prev</button>
+                        <button id="predNext" class="px-3 py-1 rounded border border-gray-700 text-sm">Next</button>
+                        <div id="predictionsPager" class="text-sm text-gray-400 ml-4">Page 1 of 1</div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="text-sm text-gray-400">Per page</label>
+                        <select id="predictionsPerPage" class="neo-element px-3 py-1 rounded text-sm">
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50" selected>50</option>
+                        </select>
+                    </div>
+                </div>
             </div>
         </section>
         
@@ -678,6 +653,9 @@ input:checked + .toggle-slider:before {
                     <i class="fas fa-scroll text-cyan-400 mr-2"></i>
                     Audit Trail
                 </h3>
+                <div class="flex items-center justify-end mb-4">
+                    <button id="exportAuditBtn" class="px-4 py-2 rounded-xl border border-gray-700 text-gray-200 hover:border-cyan-400">Export CSV</button>
+                </div>
                 <div class="space-y-4" id="auditLogs">
                     <!-- Dynamically populated -->
                 </div>
@@ -708,10 +686,15 @@ input:checked + .toggle-slider:before {
 function applyFilters() {
     const riskFilter = document.getElementById('riskFilter')?.value || 'All Risk Tiers';
     const searchInput = document.getElementById('searchInput')?.value || '';
-    // Logic to filter predictions table
-    if (window.monitoring) {
-        window.monitoring.loadSectionData('predictions');
-    }
+    // Update URL params and reload predictions
+    const params = new URLSearchParams(window.location.search);
+    if (searchInput) params.set('q', searchInput); else params.delete('q');
+    if (riskFilter && riskFilter !== 'All Risk Tiers') params.set('risk', riskFilter); else params.delete('risk');
+    params.set('page', '1');
+    params.set('limit', document.getElementById('predictionsPerPage')?.value || '50');
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState({}, '', newUrl);
+    if (window.monitoring) { window.monitoring.loadSectionData('predictions'); }
 }
 
 // ===== GLOBAL REFRESH =====
@@ -733,5 +716,56 @@ document.addEventListener('DOMContentLoaded', function() {
 // Export for global use
 window.applyFilters = applyFilters;
 window.refreshData = refreshData;
+
+// Paging helpers
+function goToPage(page) {
+    const params = new URLSearchParams(window.location.search);
+    params.set('page', String(page));
+    params.set('limit', document.getElementById('predictionsPerPage')?.value || '50');
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState({}, '', newUrl);
+    if (window.monitoring) window.monitoring.loadSectionData('predictions');
+}
+
+// Audit export
+async function exportAuditLogs() {
+    try {
+        const resp = await fetch('/api/v1/monitoring/audit-logs/export', { credentials: 'include' });
+        if (!resp.ok) { alert('Failed to export audit logs'); return; }
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `audit_logs_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    } catch (e) {
+        console.error('Export failed', e);
+        alert('Export failed');
+    }
+}
+
+window.goToPage = goToPage;
+window.exportAuditLogs = exportAuditLogs;
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('predPrev')?.addEventListener('click', () => {
+        const params = new URLSearchParams(window.location.search);
+        const p = parseInt(params.get('page') || '1');
+        if (p > 1) goToPage(p - 1);
+    });
+    document.getElementById('predNext')?.addEventListener('click', () => {
+        const params = new URLSearchParams(window.location.search);
+        const p = parseInt(params.get('page') || '1');
+        const totalPages = parseInt(document.getElementById('predictionsPager')?.dataset.total || '1');
+        if (p < totalPages) goToPage(p + 1);
+    });
+    document.getElementById('predictionsPerPage')?.addEventListener('change', () => {
+        applyFilters();
+    });
+    document.getElementById('exportAuditBtn')?.addEventListener('click', exportAuditLogs);
+});
 </script>
 {% endblock %}

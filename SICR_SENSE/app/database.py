@@ -69,6 +69,13 @@ class Database:
             await cls.db.api_usage.create_index([("user_id", 1), ("endpoint", 1)])
             await cls.db.api_usage.create_index("timestamp")
             
+            # Notifications
+            await cls.db.notifications.create_index([("user_id", 1), ("created_at", -1)])
+            await cls.db.notifications.create_index("read")
+            
+            # Error reports
+            await cls.db.error_reports.create_index("timestamp")
+            
             # Model performance
             await cls.db.model_metrics.create_index("timestamp")
             
@@ -108,5 +115,13 @@ class Collections:
     @property
     def model_metrics(self):
         return Database.get_db().model_metrics
+
+    @property
+    def notifications(self):
+        return Database.get_db().notifications
+
+    @property
+    def error_reports(self):
+        return Database.get_db().error_reports
 
 db = Collections()

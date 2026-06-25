@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query, Body
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 import logging
+import secrets
 from bson import ObjectId
 
 from ..database import db
@@ -167,10 +168,14 @@ async def create_user(
         if existing:
             raise HTTPException(status_code=400, detail="User already exists")
         
-        # Hash password
         from ..auth.jwt_handler import JWTHandler
-        user_data["password_hash"] = JWTHandler.hash_password(user_data["password"])
-        del user_data["password"]
+        provided_password = "password" in user_data and bool(user_data.get("password"))
+        password = user_data.get("password") or secrets.token_urlsafe(12)
+        user_data["password_hash"] = JWTHandler.hash_password(password)
+        user_data.pop("password", None)
+        
+        # Return generated password only when admin did not supply one
+        generated_password = password if not provided_password else None
         
         # Set defaults
         user_data.update({
@@ -192,7 +197,13 @@ async def create_user(
             "details": f"Created user {user_data['username']}"
         })
         
-        return {"message": "User created successfully", "user_id": str(result.inserted_id)}
+        response = {
+            "message": "User created successfully",
+            "user_id": str(result.inserted_id)
+        }
+        if generated_password:
+            response["generated_password"] = generated_password
+        return response
         
     except Exception as e:
         logger.error(f"Failed to create user: {e}")
@@ -220,7 +231,7 @@ async def update_user(
             {"$set": user_data}
         )
         
-        if result.modified_count == 0:
+        if result.matched_count == 0:
             raise HTTPException(status_code=404, detail="User not found")
         
         # Log activity

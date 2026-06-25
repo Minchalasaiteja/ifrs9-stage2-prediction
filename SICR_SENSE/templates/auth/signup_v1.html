@@ -693,41 +693,17 @@
     </main>
 
     <script>
-        // ==========================================
-        // THEME MANAGEMENT - FIXED
-        // ==========================================
-        (function() {
-            const themeToggle = document.getElementById('themeToggle');
-            const themeIcon = document.getElementById('themeIcon');
-            let isDark = true;
-
-            function setTheme(dark) {
-                if (dark) {
-                    document.body.classList.remove('light');
-                    if (themeIcon) themeIcon.className = 'fas fa-moon';
-                } else {
-                    document.body.classList.add('light');
-                    if (themeIcon) themeIcon.className = 'fas fa-sun';
+        // Initialize centralized theme manager
+        (function(){
+            const s = document.createElement('script');
+            s.src = '/static/js/theme-manager.js';
+            s.defer = true;
+            document.head.appendChild(s);
+            s.onload = () => {
+                if (window.initializeTheme) {
+                    window.initializeTheme({ storageKey: 'sicrsense-theme', toggleSelector: '#themeToggle', iconSelector: '#themeIcon' });
                 }
-                try { localStorage.setItem('sicrsense-theme', dark ? 'dark' : 'light'); } catch(e) {}
-                isDark = dark;
-                console.log('Theme set to:', dark ? 'dark' : 'light');
-            }
-
-            // Load saved theme
-            try {
-                const saved = localStorage.getItem('sicrsense-theme');
-                if (saved === 'light') setTheme(false);
-            } catch(e) {}
-
-            // Toggle on click
-            if (themeToggle) {
-                themeToggle.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setTheme(!isDark);
-                });
-            }
+            };
         })();
 
         // ==========================================
@@ -1515,8 +1491,6 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    setAuthToken('access_token', data.access_token, true);
-                    setAuthToken('refresh_token', data.refresh_token, true);
                     Nava.setRasa('hasya', 'Account created successfully! Welcome aboard! 🎉', 4000);
                     celebrateWithParticles();
                     showToast('Account created successfully! Redirecting...', 'success');
@@ -1560,43 +1534,6 @@
                 
                 setTimeout(() => particle.remove(), 2000);
             }
-        }
-
-        // ==========================================
-        // AUTH STORAGE HELPERS
-        // ==========================================
-        function getAuthToken() {
-            return localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
-        }
-
-        function setAuthToken(key, value, remember = true) {
-            if (remember) {
-                localStorage.setItem(key, value);
-                sessionStorage.removeItem(key);
-            } else {
-                sessionStorage.setItem(key, value);
-                localStorage.removeItem(key);
-            }
-        }
-
-        function clearAuthTokens() {
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
-            sessionStorage.removeItem('access_token');
-            sessionStorage.removeItem('refresh_token');
-        }
-
-        async function logout() {
-            clearAuthTokens();
-            try {
-                await fetch('/api/v1/auth/logout', {
-                    method: 'POST',
-                    credentials: 'include'
-                });
-            } catch (err) {
-                console.warn('Logout request failed', err);
-            }
-            window.location.href = '/login';
         }
 
         // Password match check

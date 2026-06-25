@@ -177,12 +177,13 @@
   <script src="/static/js/theme-manager.js"></script>
   
   <script>
-    // Initialize theme manager on all dashboard pages
-    const themeManager = new ThemeManager({
-      storageKey: 'sicrsense-theme',
-      toggleSelector: '#themeToggle',
-      iconSelector: '#themeIcon'
-    });
+    // Initialize centralized theme manager for dashboard
+    if (window.initializeTheme) {
+      window.initializeTheme({ storageKey: 'sicrsense-theme', toggleSelector: '#themeToggle', iconSelector: '#themeIcon' });
+    } else if (typeof ThemeManager === 'function') {
+      // Fallback if script didn't expose initializer
+      window.themeManager = new ThemeManager({ storageKey: 'sicrsense-theme', toggleSelector: '#themeToggle', iconSelector: '#themeIcon' });
+    }
   </script>
   
   {% block scripts %}{% endblock %}

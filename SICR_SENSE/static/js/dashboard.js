@@ -19,9 +19,8 @@ class DashboardManager {
     setupWebSocket() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws`;
-        const token = getAuthToken();
-        
-        this.ws = new WebSocket(`${wsUrl}?token=${token}`);
+                
+        this.ws = new WebSocket(wsUrl);
         
         this.ws.onopen = () => {
             console.log('WebSocket connected');
@@ -82,8 +81,7 @@ class DashboardManager {
     
     async submitPrediction() {
         const formData = this.getFormData();
-        const token = getAuthToken();
-        
+                
         try {
             this.showResultState('loading');
             this.showLoading(true);
@@ -92,8 +90,7 @@ class DashboardManager {
             const response = await fetch('/api/v1/predict', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(formData)
             });
@@ -411,12 +408,10 @@ class DashboardManager {
             const text = await file.text();
             const data = JSON.parse(text);
             
-            const token = getAuthToken();
-            const response = await fetch('/api/v1/predict/batch', {
+                        const response = await fetch('/api/v1/predict/batch', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(data)
             });
@@ -432,9 +427,8 @@ class DashboardManager {
     
     async fetchInitialData() {
         try {
-            const token = getAuthToken();
-            const response = await fetch('/api/v1/stats', {
-                headers: { 'Authorization': `Bearer ${token}` }
+                        const response = await fetch('/api/v1/stats', {
+                headers: {}
             });
             
             if (response.ok) {
@@ -447,13 +441,12 @@ class DashboardManager {
     }
 
     async loadRecentPredictions(limit = 5) {
-        const token = getAuthToken();
-        const tbody = document.getElementById('history-table-body');
+                const tbody = document.getElementById('history-table-body');
         if (!tbody) return;
 
         try {
             const response = await fetch(`/api/v1/predictions/history?limit=${limit}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: {}
             });
 
             if (!response.ok) {

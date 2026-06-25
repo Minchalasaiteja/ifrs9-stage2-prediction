@@ -34,6 +34,7 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str, 
         httponly=True,
         secure=settings.PRODUCTION,
         samesite="lax",
+        path="/",
         max_age=access_max_age,
         expires=access_max_age
     )
@@ -43,6 +44,7 @@ def set_auth_cookies(response: Response, access_token: str, refresh_token: str, 
         httponly=True,
         secure=settings.PRODUCTION,
         samesite="lax",
+        path="/",
         max_age=refresh_max_age,
         expires=refresh_max_age if refresh_max_age else None
     )
@@ -67,6 +69,9 @@ async def signup(user_data: UserCreate, request: Request, background_tasks: Back
         
         # Create user
         user_dict = user_data.dict()
+        if not user_dict.get("last_name"):
+            user_dict["last_name"] = user_dict["first_name"]
+
         user_dict.update({
             "password_hash": JWTHandler.hash_password(user_data.password),
             "created_at": datetime.utcnow(),
@@ -634,7 +639,12 @@ async def logout(request: Request):
     if refresh_token:
         await db.sessions.delete_many({"refresh_token": refresh_token})
 
-    response = RedirectResponse(url="/", status_code=302)
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
+    if request.method == 'POST':
+        response = JSONResponse({"message": "Logged out successfully"})
+    else:
+        response = RedirectResponse(url="/", status_code=302)
+
+    response.delete_cookie("access_token", path="/")
+    response.delete_cookie("refresh_token", path="/")
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return response

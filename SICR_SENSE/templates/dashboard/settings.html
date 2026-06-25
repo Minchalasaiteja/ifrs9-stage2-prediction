@@ -63,11 +63,7 @@
 <script>
   async function loadUserEmail() {
     try {
-      const token = getAuthToken();
-      const response = await fetch('/api/v1/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+            const response = await fetch('/api/v1/auth/me', {
       });
       
       if (response.ok) {
@@ -86,8 +82,7 @@
     const newPassword = document.getElementById('newPassword').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
     const status = document.getElementById('passwordStatus');
-    const token = getAuthToken();
-
+    
     if (newPassword !== confirmPassword) {
       status.textContent = 'Passwords do not match';
       status.className = 'text-sm p-3 rounded-lg bg-red-500/20 text-red-400';
@@ -111,7 +106,6 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           current_password: currentPassword,
@@ -141,8 +135,7 @@
     const newEmail = document.getElementById('newEmail').value;
     const password = document.getElementById('emailPassword').value;
     const status = document.getElementById('emailStatus');
-    const token = getAuthToken();
-
+    
     if (!newEmail.includes('@')) {
       status.textContent = 'Please enter a valid email address';
       status.className = 'text-sm p-3 rounded-lg bg-red-500/20 text-red-400';
@@ -159,7 +152,6 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           new_email: newEmail,

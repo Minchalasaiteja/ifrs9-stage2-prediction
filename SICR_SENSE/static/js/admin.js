@@ -1,7 +1,7 @@
 // SICRSense Admin Panel JavaScript
 class AdminPanel {
     constructor() {
-        this.currentSection = 'overview';
+        this.currentSection = window.initialAdminSection || 'overview';
         this.users = [];
         this.selectedUsers = new Set();
         this.init();
@@ -9,16 +9,16 @@ class AdminPanel {
     
     init() {
         this.setupNavigation();
-        this.loadSectionData('overview');
         this.setupEventListeners();
+        this.switchSection(this.currentSection);
         this.checkAdminAccess();
     }
     
     async checkAdminAccess() {
         try {
-            const token = getAuthToken();
-            const response = await fetch('/api/v1/auth/me', {
-                headers: { 'Authorization': `Bearer ${token}` }
+                        const response = await fetch('/api/v1/auth/me', {
+                credentials: 'include',
+                headers: {}
             });
             
             if (response.ok) {
@@ -26,9 +26,10 @@ class AdminPanel {
                 if (user.role !== 'admin') {
                     window.location.href = '/dashboard';
                 }
-                document.getElementById('admin-name').textContent = 
-                    `${user.first_name} ${user.last_name}`;
-                document.getElementById('admin-role').textContent = user.role;
+                const adminNameEl = document.getElementById('admin-name');
+                const adminRoleEl = document.getElementById('admin-role');
+                if (adminNameEl) adminNameEl.textContent = `${user.first_name} ${user.last_name}`;
+                if (adminRoleEl) adminRoleEl.textContent = user.role;
             } else {
                 window.location.href = '/login';
             }
@@ -71,6 +72,7 @@ class AdminPanel {
             this.getSectionTitle(section);
         
         this.currentSection = section;
+        this.updateUrlForSection(section);
         this.loadSectionData(section);
     }
     
@@ -86,10 +88,16 @@ class AdminPanel {
         };
         return titles[section] || section;
     }
+
+    updateUrlForSection(section) {
+        const sectionPath = section === 'overview' ? '/admin' : `/admin/${section}`;
+        if (window.history && window.location.pathname !== sectionPath) {
+            window.history.replaceState({}, '', sectionPath);
+        }
+    }
     
     async loadSectionData(section) {
-        const token = getAuthToken();
-        
+                
         try {
             switch(section) {
                 case 'overview':
@@ -115,9 +123,9 @@ class AdminPanel {
     }
     
     async loadOverview() {
-        const token = getAuthToken();
-        const response = await fetch('/api/v1/admin/overview', {
-            headers: { 'Authorization': `Bearer ${token}` }
+                const response = await fetch('/api/v1/admin/overview', {
+            credentials: 'include',
+            headers: {}
         });
         
         if (response.ok) {
@@ -204,9 +212,18 @@ class AdminPanel {
     }
     
     async loadUsers(page = 1) {
-        const token = getAuthToken();
-        const response = await fetch(`/api/v1/admin/users?page=${page}&limit=10`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+                const role = document.getElementById('roleFilter')?.value || '';
+        const status = document.getElementById('statusFilter')?.value || '';
+        const search = document.getElementById('userSearch')?.value || '';
+        const params = new URLSearchParams({ page: String(page), limit: '10' });
+
+        if (role) params.set('role', role);
+        if (status) params.set('status', status);
+        if (search) params.set('search', search);
+
+        const response = await fetch(`/api/v1/admin/users?${params.toString()}`, {
+            credentials: 'include',
+            headers: {}
         });
         
         if (response.ok) {
@@ -220,6 +237,10 @@ class AdminPanel {
     renderUsersTable(users) {
         const tbody = document.getElementById('usersTableBody');
         if (!tbody) return;
+        
+        this.selectedUsers.clear();
+        document.getElementById('selectedCount').textContent = '0';
+        document.getElementById('bulkActions').style.display = 'none';
         
         tbody.innerHTML = '';
         
@@ -301,9 +322,9 @@ class AdminPanel {
     }
     
     async editUser(userId) {
-        const token = getAuthToken();
-        const response = await fetch(`/api/v1/admin/users/${userId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+                const response = await fetch(`/api/v1/admin/users/${userId}`, {
+            credentials: 'include',
+            headers: {}
         });
         
         if (response.ok) {
@@ -331,11 +352,15 @@ class AdminPanel {
             document.getElementById('user-id').value = '';
         }
         
-        modal.classList.add('active');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
     }
     
     closeUserModal() {
-        document.getElementById('userModal')?.classList.remove('active');
+        const modal = document.getElementById('userModal');
+        if (!modal) return;
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
     }
     
     async saveUser(event) {
@@ -351,8 +376,7 @@ class AdminPanel {
             is_active: document.getElementById('edit-status').checked
         };
         
-        const token = getAuthToken();
-        const url = userId ? 
+                const url = userId ? 
             `/api/v1/admin/users/${userId}` : 
             '/api/v1/admin/users';
         const method = userId ? 'PUT' : 'POST';
@@ -360,9 +384,9 @@ class AdminPanel {
         try {
             const response = await fetch(url, {
                 method: method,
+                credentials: 'include',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(userData)
             });
@@ -385,12 +409,12 @@ class AdminPanel {
             return;
         }
         
-        const token = getAuthToken();
-        
+                
         try {
             const response = await fetch(`/api/v1/admin/users/${userId}`, {
                 method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
+                credentials: 'include',
+                headers: {}
             });
             
             if (response.ok) {
@@ -407,13 +431,13 @@ class AdminPanel {
         
         if (!confirm(`Delete ${this.selectedUsers.size} selected users?`)) return;
         
-        const token = getAuthToken();
-        
+                
         try {
             for (const userId of this.selectedUsers) {
                 await fetch(`/api/v1/admin/users/${userId}`, {
                     method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include',
+                    headers: {}
                 });
             }
             
@@ -424,16 +448,27 @@ class AdminPanel {
             this.showToast('Bulk delete failed', 'error');
         }
     }
+
+    exportSelectedUsers() {
+        if (this.selectedUsers.size === 0) {
+            this.showToast('Select users to export first', 'info');
+            return;
+        }
+        const ids = Array.from(this.selectedUsers).join(',');
+        window.location.href = `/api/v1/export?ids=${encodeURIComponent(ids)}&collection=users`;
+    }
     
     async loadActivity() {
-        const token = getAuthToken();
-        const response = await fetch('/api/v1/admin/activity?limit=20', {
-            headers: { 'Authorization': `Bearer ${token}` }
+                const response = await fetch('/api/v1/admin/activity?limit=20', {
+            credentials: 'include',
+            headers: {}
         });
         
         if (response.ok) {
             const data = await response.json();
             this.renderActivityLog(data.activities);
+        } else {
+            this.showToast('Failed to load activity logs', 'error');
         }
     }
     
@@ -466,14 +501,44 @@ class AdminPanel {
         return 'bg-gray-400';
     }
     
-    async loadSessions() {
-        // Session loading logic
+    async loadSessions(page = 1) {
+        const response = await fetch(`/api/v1/admin/sessions?page=${page}&limit=20`, {
+            credentials: 'include',
+            headers: {}
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            this.renderSessionsTable(data.sessions || []);
+        } else {
+            this.showToast('Failed to load sessions', 'error');
+        }
+    }
+    
+    renderSessionsTable(sessions) {
+        const tbody = document.getElementById('sessionsTableBody');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+        sessions.forEach(session => {
+            const row = document.createElement('tr');
+            row.className = 'border-b border-white/10 hover:bg-white/5 transition-colors';
+            row.innerHTML = `
+                <td class="py-3 px-4 font-semibold text-sm">${session.user_id || 'Unknown'}</td>
+                <td class="py-3 px-4 text-gray-400 text-sm">${session.username || 'Unknown'}</td>
+                <td class="py-3 px-4 text-gray-400 text-sm">${session.created_at ? new Date(session.created_at).toLocaleString() : 'N/A'}</td>
+                <td class="py-3 px-4 text-gray-400 text-sm">${session.expires_at ? new Date(session.expires_at).toLocaleString() : 'N/A'}</td>
+                <td class="py-3 px-4 text-sm ${session.is_active ? 'text-green-400' : 'text-red-400'}">${session.is_active ? 'Active' : 'Expired'}</td>
+                <td class="py-3 px-4 text-gray-400 text-sm">${session.ip_address || 'N/A'}</td>
+            `;
+            tbody.appendChild(row);
+        });
     }
     
     async loadAuditLogs() {
-        const token = getAuthToken();
-        const response = await fetch('/api/v1/monitoring/audit-logs?limit=20', {
-            headers: { 'Authorization': `Bearer ${token}` }
+                const response = await fetch('/api/v1/monitoring/audit-logs?limit=20', {
+            credentials: 'include',
+            headers: {}
         });
         
         if (response.ok) {
@@ -542,11 +607,27 @@ class AdminPanel {
         document.getElementById('userForm')?.addEventListener('submit', (e) => this.saveUser(e));
         document.getElementById('closeModal')?.addEventListener('click', () => this.closeUserModal());
         document.getElementById('bulkDeleteBtn')?.addEventListener('click', () => this.bulkDelete());
-        
-        // Search functionality
-        document.getElementById('userSearch')?.addEventListener('input', (e) => {
-            this.filterUsers(e.target.value);
+        document.getElementById('exportUsersBtn')?.addEventListener('click', () => this.exportSelectedUsers());
+        document.getElementById('selectAllUsers')?.addEventListener('change', (e) => this.toggleSelectAll(e.target.checked));
+
+        // Search and filter functionality
+        document.getElementById('userSearch')?.addEventListener('input', () => this.loadUsers());
+        document.getElementById('roleFilter')?.addEventListener('change', () => this.loadUsers());
+        document.getElementById('statusFilter')?.addEventListener('change', () => this.loadUsers());
+    }
+    
+    toggleSelectAll(isChecked) {
+        const checkboxes = document.querySelectorAll('#usersTableBody input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            cb.checked = isChecked;
+            if (isChecked) {
+                this.selectedUsers.add(cb.value);
+            } else {
+                this.selectedUsers.delete(cb.value);
+            }
         });
+        document.getElementById('selectedCount').textContent = `${this.selectedUsers.size}`;
+        document.getElementById('bulkActions').style.display = this.selectedUsers.size > 0 ? 'flex' : 'none';
     }
     
     filterUsers(searchTerm) {
@@ -560,8 +641,13 @@ class AdminPanel {
     }
     
     showToast(message, type = 'info') {
-        const container = document.getElementById('toast-container');
-        if (!container) return;
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'fixed bottom-4 right-4 z-50 flex flex-col gap-3';
+            document.body.appendChild(container);
+        }
         
         const toast = document.createElement('div');
         const colors = {
@@ -590,4 +676,5 @@ class AdminPanel {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     window.adminPanel = new AdminPanel();
+    window.openUserModal = (user = null) => window.adminPanel?.openUserModal(user);
 });

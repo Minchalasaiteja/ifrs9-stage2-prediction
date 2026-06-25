@@ -27,3 +27,5 @@ logs/
 
 # VS Code
 .vscode/
+
+.continue/

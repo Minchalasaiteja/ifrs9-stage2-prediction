@@ -1161,33 +1161,18 @@
         drawAurora();
         window.addEventListener('resize', resizeAurora);
         
-        // Theme Toggle
-        const themeToggle = document.getElementById('themeToggle');
-        const themeIcon = document.getElementById('themeIcon');
-        let isDark = true;
-        
-        themeToggle.addEventListener('click', () => {
-            isDark = !isDark;
-            if (isDark) { 
-                document.body.classList.remove('light'); 
-                themeIcon.className = 'fas fa-moon'; 
-            } else { 
-                document.body.classList.add('light'); 
-                themeIcon.className = 'fas fa-sun'; 
-            }
-            // Save preference
-            try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch(e) {}
-        });
-        
-        // Load saved theme
-        try {
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme === 'light' && isDark) {
-                isDark = false;
-                document.body.classList.add('light');
-                themeIcon.className = 'fas fa-sun';
-            }
-        } catch(e) {}
+        // Initialize centralized theme manager
+        (function(){
+            const s = document.createElement('script');
+            s.src = '/static/js/theme-manager.js';
+            s.defer = true;
+            document.head.appendChild(s);
+            s.onload = () => {
+                if (window.initializeTheme) {
+                    window.initializeTheme({ storageKey: 'sicrsense-theme', toggleSelector: '#themeToggle', iconSelector: '#themeIcon' });
+                }
+            };
+        })();
         
         // Loading Screen
         window.addEventListener('load', () => { 

@@ -111,13 +111,9 @@
 {% block scripts %}
 <script>
   async function loadUserProfile() {
-    const token = getAuthToken();
-    
+        
     try {
       const response = await fetch('/api/v1/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
       });
       
       if (response.ok) {
@@ -148,8 +144,7 @@
 
   async function handleSaveContact(e) {
     e.preventDefault();
-    const token = getAuthToken();
-    const status = document.getElementById('contactStatus');
+        const status = document.getElementById('contactStatus');
     
     const data = {
       first_name: document.getElementById('firstName').value,
@@ -170,7 +165,6 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(data)
       });
@@ -192,8 +186,7 @@
 
   async function handleSavePreferences(e) {
     e.preventDefault();
-    const token = getAuthToken();
-    const status = document.getElementById('preferencesStatus');
+        const status = document.getElementById('preferencesStatus');
     
     const data = {
       language: document.getElementById('language').value,
@@ -213,7 +206,6 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(data)
       });

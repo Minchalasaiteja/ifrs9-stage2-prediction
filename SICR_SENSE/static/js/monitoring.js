@@ -35,52 +35,60 @@ class MonitoringDashboard {
     }
     
     setupWebSocket() {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const token = getAuthToken();
-        const wsUrl = `${protocol}//${window.location.host}/ws${token ? `?token=${token}` : ''}`;
-        
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            return;
-        }
-        
-        this.ws = new WebSocket(wsUrl);
-        
-        this.ws.onopen = () => {
-            console.log('Monitoring WebSocket connected');
-            this.reconnectAttempts = 0;
-            this.updateConnectionStatus(true);
-            
-            // Subscribe to channels
-            this.ws.send(JSON.stringify({ type: 'subscribe_metrics' }));
-            this.ws.send(JSON.stringify({ type: 'subscribe_predictions' }));
-            this.ws.send(JSON.stringify({ type: 'request_metrics' }));
-        };
-        
-        this.ws.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
+        // Use centralized WebSocketStatus (created in components.js) when available
+        if (window.wsStatus && window.wsStatus.ws) {
+            // Subscribe when the wsStatus announces connection
+            window.addEventListener('ws-status-changed', (e) => {
+                const connected = e.detail?.connected;
+                this.updateConnectionStatus(connected);
+                if (connected) {
+                    // Request subscriptions via wsStatus.sendMessage
+                    try {
+                        window.wsStatus.sendMessage({ type: 'subscribe_metrics' });
+                        window.wsStatus.sendMessage({ type: 'subscribe_predictions' });
+                        window.wsStatus.sendMessage({ type: 'request_metrics' });
+                    } catch (err) {
+                        console.warn('Failed to send subscription messages:', err);
+                    }
+                }
+            });
+
+            // Handle incoming messages dispatched globally
+            window.addEventListener('ws-message', (ev) => {
+                const data = ev.detail;
+                if (!data) return;
                 if (data.type === 'error') {
                     console.error('WebSocket error:', data.message);
                     return;
                 }
                 this.handleMessage(data);
-            } catch (e) {
-                console.error('Failed to parse WebSocket message:', e);
-            }
+            });
+
+            return;
+        }
+
+        // Fallback to local WS if centralized manager isn't available
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
+        this.ws = new WebSocket(wsUrl);
+        this.ws.onopen = () => {
+            console.log('Monitoring WebSocket connected');
+            this.reconnectAttempts = 0;
+            this.updateConnectionStatus(true);
+            this.ws.send(JSON.stringify({ type: 'subscribe_metrics' }));
+            this.ws.send(JSON.stringify({ type: 'subscribe_predictions' }));
+            this.ws.send(JSON.stringify({ type: 'request_metrics' }));
         };
-        
-        this.ws.onclose = () => {
-            this.updateConnectionStatus(false);
-            // Exponential backoff reconnect
-            const delay = Math.min(3000 * Math.pow(1.5, this.reconnectAttempts), 30000);
-            this.reconnectAttempts++;
-            setTimeout(() => this.setupWebSocket(), delay);
+        this.ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'error') return;
+                this.handleMessage(data);
+            } catch (e) { console.error('Failed to parse WS message:', e); }
         };
-        
-        this.ws.onerror = (error) => {
-            console.error('WebSocket error:', error);
-            this.ws.close();
-        };
+        this.ws.onclose = () => { this.updateConnectionStatus(false); const delay = Math.min(3000 * Math.pow(1.5, this.reconnectAttempts), 30000); this.reconnectAttempts++; setTimeout(() => this.setupWebSocket(), delay); };
+        this.ws.onerror = (error) => { console.error('WebSocket error:', error); this.ws.close(); };
     }
     
     handleMessage(data) {
@@ -689,12 +697,12 @@ class MonitoringDashboard {
     
     async fetchInitialData() {
         try {
-            const token = getAuthToken();
-            const timeRange = document.getElementById('timeRange')?.value || '24h';
+            window.dispatchEvent(new CustomEvent('monitoring-loading'));
+                        const timeRange = document.getElementById('timeRange')?.value || '24h';
             
             const response = await fetch(`/api/v1/monitoring/overview?time_range=${timeRange}`, {
+                credentials: 'include',
                 headers: { 
-                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
@@ -704,7 +712,6 @@ class MonitoringDashboard {
                 this.updateAllMetrics(data);
             } else {
                 console.warn('Failed to fetch monitoring overview:', response.status);
-                // Use empty stats
                 this.updateAllMetrics({
                     total_predictions: 0,
                     active_connections: 0,
@@ -713,25 +720,40 @@ class MonitoringDashboard {
                     latency_distribution: [],
                     risk_distribution: {}
                 });
+                const errEl = document.getElementById('monitoring-error');
+                if (errEl) {
+                    errEl.innerHTML = `<div class="text-sm text-red-400">Failed to load monitoring overview (status: ${response.status}). <button id=\"monitoring-retry\" class=\"underline text-cyan-400\">Retry</button></div>`;
+                    document.getElementById('monitoring-retry')?.addEventListener('click', () => this.fetchInitialData());
+                }
             }
+            window.dispatchEvent(new CustomEvent('monitoring-loaded'));
             
             // Also fetch performance metrics to hydrate the overview card
             this.loadSectionData('performance');
         } catch (error) {
             console.error('Failed to fetch monitoring data:', error);
+            window.dispatchEvent(new CustomEvent('monitoring-error', { detail: { error: String(error) } }));
         }
     }
     
     async loadSectionData(section) {
         try {
-            const token = getAuthToken();
-            const timeRange = document.getElementById('timeRange')?.value || '24h';
-            
-            const response = await fetch(`/api/v1/monitoring/${section}?time_range=${timeRange}`, {
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
+            window.dispatchEvent(new CustomEvent('monitoring-section-loading', { detail: { section } }));
+                        const timeRange = document.getElementById('timeRange')?.value || '24h';
+            let url = `/api/v1/monitoring/${section}?time_range=${timeRange}`;
+            if (section === 'predictions') {
+                const params = new URLSearchParams(window.location.search);
+                const page = params.get('page') || '1';
+                const search = params.get('q') || '';
+                const risk = params.get('risk') || '';
+                const limit = params.get('limit') || '50';
+                url += `&page=${page}&limit=${limit}`;
+                if (search) url += `&search=${encodeURIComponent(search)}`;
+                if (risk) url += `&risk_filter=${encodeURIComponent(risk)}`;
+            }
+            const response = await fetch(url, {
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
             });
             
             if (response.ok) {
@@ -761,9 +783,12 @@ class MonitoringDashboard {
                 }
             } else {
                 console.warn(`Failed to load ${section} data:`, response.status);
+                window.dispatchEvent(new CustomEvent('monitoring-section-error', { detail: { section, status: response.status } }));
             }
+            window.dispatchEvent(new CustomEvent('monitoring-section-loaded', { detail: { section } }));
         } catch (error) {
             console.error(`Failed to load ${section} data:`, error);
+            window.dispatchEvent(new CustomEvent('monitoring-section-error', { detail: { section, error: String(error) } }));
         }
     }
     
@@ -866,24 +891,46 @@ class MonitoringDashboard {
             
             el.className = `p-4 rounded-xl border-l-4 ${severityClass} mb-4 flex justify-between items-center animate-slide-in`;
             const time = alert.timestamp ? new Date(alert.timestamp).toLocaleString() : 'Unknown';
+            const ackButton = alert.acknowledged ? '<span class="text-sm text-gray-400">Acknowledged</span>' : `<button class="ack-alert text-sm underline text-cyan-400" data-id="${alert._id}">Acknowledge</button>`;
             el.innerHTML = `
                 <div>
                     <p class="font-semibold">${alert.message || 'Alert'}</p>
                     <p class="text-sm opacity-70">${time}</p>
                 </div>
+                <div>${ackButton}</div>
             `;
             container.appendChild(el);
+        });
+
+        // Attach ack handlers
+        container.querySelectorAll('.ack-alert').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = btn.dataset.id;
+                try {
+                    const resp = await fetch(`/api/v1/monitoring/alerts/ack/${encodeURIComponent(id)}`, { method: 'POST', credentials: 'include' });
+                    if (resp.ok) {
+                        btn.outerHTML = '<span class="text-sm text-gray-400">Acknowledged</span>';
+                    } else {
+                        toast?.error('Failed to acknowledge alert');
+                    }
+                } catch (err) {
+                    console.error('Ack failed', err);
+                    toast?.error('Failed to acknowledge alert');
+                }
+            });
         });
     }
     
     updatePredictionsTable(data) {
         const tbody = document.getElementById('predictionsTableBody');
         if (!tbody) return;
-        
         const predictions = data.predictions || data.recent_predictions || [];
+        const total = data.total || predictions.length;
+        const page = data.page || 1;
+        const pages = data.pages || 1;
         tbody.innerHTML = '';
-        
-        predictions.slice(0, 50).forEach(prediction => {
+
+        predictions.forEach(prediction => {
             const row = document.createElement('tr');
             const riskTier = prediction.risk_tier || prediction.output?.risk_tier || 'Unknown';
             const color = this.getRiskColor(riskTier).replace('bg-', '').replace('-400', '');
@@ -900,13 +947,20 @@ class MonitoringDashboard {
                 <td class="text-gray-400">${prediction.processing_time_ms || prediction.latency || 0}ms</td>
                 <td class="text-gray-500 text-sm">${prediction.timestamp ? new Date(prediction.timestamp).toLocaleString() : '—'}</td>
                 <td>
-                    <button class="text-cyan-400 hover:underline text-sm" onclick="window.monitoring.showPredictionDetails('${prediction.loan_id || 'unknown'}')">
+                    <button class="text-cyan-400 hover:underline text-sm" data-loan="${prediction.loan_id || 'unknown'}" onclick="window.monitoring.showPredictionDetails('${prediction.loan_id || 'unknown'}')">
                         Details
                     </button>
                 </td>
             `;
             tbody.appendChild(row);
         });
+
+        // Pagination footer
+        const pager = document.getElementById('predictionsPager');
+        if (pager) {
+            pager.innerHTML = `Page ${page} of ${pages} — ${total} total`;
+            try { pager.dataset.total = pages; } catch(e) { /* ignore */ }
+        }
     }
     
     updateResourceData(data) {
@@ -945,9 +999,36 @@ class MonitoringDashboard {
     }
     
     showPredictionDetails(loanId) {
-        // Implement prediction details modal
-        console.log('Showing details for:', loanId);
-        alert(`Prediction details for loan: ${loanId}\n\nThis feature will show detailed prediction information.`);
+        // Fetch prediction details and show in modal
+        (async () => {
+            try {
+                const resp = await fetch(`/api/v1/monitoring/prediction/${encodeURIComponent(loanId)}`, { credentials: 'include' });
+                if (!resp.ok) {
+                    alert('Failed to load details');
+                    return;
+                }
+                const data = await resp.json();
+                const preds = data.predictions || [];
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/60';
+                modal.innerHTML = `
+                    <div class="bg-gray-900 rounded-lg w-11/12 max-w-3xl p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-bold">Prediction Details: ${loanId}</h3>
+                            <button id="closePredModal" class="text-gray-400 hover:text-white">Close</button>
+                        </div>
+                        <div style="max-height:60vh; overflow:auto;">
+                            ${preds.map(p => `<div class=\"mb-3 p-3 bg-black/20 rounded\">Time: ${p.timestamp || ''}<br/>Risk: ${p.risk_tier || p.output?.risk_tier || ''}<br/>Probability: ${((p.migration_probability||p.output?.migration_probability||0)*100).toFixed(2)}%<br/>Processing: ${p.processing_time_ms || p.latency || p.latency_ms || 0}ms<br/>Raw: <pre style=\"white-space:pre-wrap;\">${JSON.stringify(p, null, 2)}</pre></div>`).join('')}
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                document.getElementById('closePredModal').addEventListener('click', () => modal.remove());
+            } catch (e) {
+                console.error('Failed to fetch prediction details:', e);
+                alert('Failed to load details');
+            }
+        })();
     }
     
     startAutoRefresh() {

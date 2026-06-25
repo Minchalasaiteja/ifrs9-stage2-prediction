@@ -94,6 +94,18 @@ except ImportError as e:
     logger.warning(f"Failed to import monitoring router (it might not exist yet): {e}")
 
 try:
+    from .routes import reports
+    app.include_router(reports.router, prefix="/api/v1/reports", tags=["reports"])
+except ImportError as e:
+    logger.warning(f"Failed to import reports router: {e}")
+
+try:
+    from routes import utils
+    app.include_router(utils.router, prefix="/api/v1", tags=["utility"])
+except ImportError as e:
+    logger.warning(f"Failed to import utility router: {e}")
+
+try:
     from .routes import predictions
     app.include_router(predictions.router, prefix="/api/v1/predictions", tags=["predictions"])
     
@@ -299,6 +311,48 @@ async def admin_audit_page(request: Request):
         "title": "Audit Logs - SICRSense",
         "active_page": "audit",
         "admin_section": "audit",
+        "user": user
+    })
+
+@app.get("/admin/activity", response_class=HTMLResponse)
+async def admin_activity_page(request: Request):
+    """Admin user activity page"""
+    user = await get_optional_user(request)
+    if not user or user.get("role") != "admin":
+        return RedirectResponse(url="/dashboard", status_code=302)
+    return templates.TemplateResponse(request, "admin/dashboard.html", {
+        "request": request,
+        "title": "User Activity - SICRSense",
+        "active_page": "activity",
+        "admin_section": "activity",
+        "user": user
+    })
+
+@app.get("/admin/sessions", response_class=HTMLResponse)
+async def admin_sessions_page(request: Request):
+    """Admin sessions page"""
+    user = await get_optional_user(request)
+    if not user or user.get("role") != "admin":
+        return RedirectResponse(url="/dashboard", status_code=302)
+    return templates.TemplateResponse(request, "admin/dashboard.html", {
+        "request": request,
+        "title": "Active Sessions - SICRSense",
+        "active_page": "sessions",
+        "admin_section": "sessions",
+        "user": user
+    })
+
+@app.get("/admin/security", response_class=HTMLResponse)
+async def admin_security_page(request: Request):
+    """Admin security settings page"""
+    user = await get_optional_user(request)
+    if not user or user.get("role") != "admin":
+        return RedirectResponse(url="/dashboard", status_code=302)
+    return templates.TemplateResponse(request, "admin/dashboard.html", {
+        "request": request,
+        "title": "Security Settings - SICRSense",
+        "active_page": "security",
+        "admin_section": "security",
         "user": user
     })
 

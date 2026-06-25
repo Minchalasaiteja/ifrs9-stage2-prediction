@@ -11,12 +11,23 @@
     </div>
     <div class="flex gap-3">
       <button id="newPredictionBtn" class="px-6 py-3 rounded-xl bg-cyan-500/15 text-cyan-200 border border-cyan-500/20 hover:border-cyan-400 transition-all"><i class="fas fa-plus mr-2"></i>New Prediction</button>
-      <button id="downloadPredictions" class="px-6 py-3 rounded-xl border border-gray-700 text-gray-200 hover:border-cyan-400 transition-all"><i class="fas fa-download mr-2"></i>Download</button>
+      <button id="downloadPredictions" class="px-6 py-3 rounded-xl border border-gray-700 text-gray-200 hover:border-cyan-400 transition-all"><i class="fas fa-download mr-2"></i>Export CSV</button>
       <button id="refreshPredictions" class="px-6 py-3 rounded-xl border border-gray-700 text-gray-200 hover:border-cyan-400 transition-all"><i class="fas fa-sync-alt mr-2"></i>Refresh</button>
     </div>
   </div>
 </div>
 <div class="glass-card p-6 overflow-x-auto">
+  <div class="flex gap-3 mb-4">
+    <input id="predSearch" placeholder="Search Loan ID or Risk" class="neo-element px-4 py-2 rounded-xl text-sm flex-1" />
+    <select id="predPerPage" class="neo-element px-3 py-2 rounded-xl text-sm">
+      <option value="10">10</option>
+      <option value="25">25</option>
+      <option value="50" selected>50</option>
+    </select>
+    <button id="predSearchBtn" class="px-4 py-2 rounded-xl border border-gray-700">Search</button>
+    <label class="px-2 py-2 rounded-xl bg-gray-800 text-sm">Upload Batch</label>
+    <input id="batchUpload" type="file" accept=".csv" />
+  </div>
   <table class="min-w-full text-left text-gray-300">
     <thead class="border-b border-gray-800 text-sm uppercase tracking-[0.12em] text-gray-400">
       <tr>
@@ -34,6 +45,16 @@
       </tr>
     </tbody>
   </table>
+  <div class="flex items-center justify-between mt-4">
+    <div>
+      <button id="predPrevBtn" class="px-3 py-1 rounded border border-gray-700 text-sm">Prev</button>
+      <button id="predNextBtn" class="px-3 py-1 rounded border border-gray-700 text-sm">Next</button>
+      <span id="predPagerText" class="ml-4 text-sm text-gray-400">Page 1 of 1</span>
+    </div>
+    <div>
+      <button id="predExportFiltered" class="px-4 py-1 rounded border border-gray-700 text-sm">Export Filtered</button>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
@@ -43,17 +64,13 @@
   let allPredictions = [];
 
   async function loadPredictionHistory() {
-    const token = getAuthToken();
-    const tbody = document.getElementById('predictionHistoryTableBody');
+        const tbody = document.getElementById('predictionHistoryTableBody');
 
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-6">Loading predictions...</td></tr>';
 
     try {
       const response = await fetch(PREDICTIONS_API, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
       });
 
       if (!response.ok) {
@@ -124,6 +141,35 @@
     });
     document.getElementById('refreshPredictions')?.addEventListener('click', loadPredictionHistory);
     document.getElementById('downloadPredictions')?.addEventListener('click', downloadPredictions);
+    document.getElementById('predSearchBtn')?.addEventListener('click', () => {
+      const q = document.getElementById('predSearch')?.value || '';
+      const per = document.getElementById('predPerPage')?.value || '50';
+      const params = new URLSearchParams(window.location.search);
+      if (q) params.set('q', q); else params.delete('q');
+      params.set('page', '1'); params.set('limit', per);
+      window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+      loadPredictionHistory();
+    });
+    document.getElementById('predPrevBtn')?.addEventListener('click', () => {
+      const params = new URLSearchParams(window.location.search);
+      const p = parseInt(params.get('page')||'1'); if (p>1) { params.set('page', String(p-1)); window.history.replaceState({},'',`${window.location.pathname}?${params.toString()}`); loadPredictionHistory(); }
+    });
+    document.getElementById('predNextBtn')?.addEventListener('click', () => {
+      const params = new URLSearchParams(window.location.search);
+      const p = parseInt(params.get('page')||'1'); const pages = parseInt(document.getElementById('predPagerText')?.dataset.pages||'1'); if (p<pages) { params.set('page', String(p+1)); window.history.replaceState({},'',`${window.location.pathname}?${params.toString()}`); loadPredictionHistory(); }
+    });
+    document.getElementById('predExportFiltered')?.addEventListener('click', async () => {
+      const params = new URLSearchParams(window.location.search);
+      const url = '/api/v1/predictions/export?' + params.toString();
+      const resp = await fetch(url, { credentials: 'include' });
+      if (!resp.ok) { alert('Export failed'); return; }
+      const blob = await resp.blob(); const a = document.createElement('a'); const urlobj = URL.createObjectURL(blob); a.href = urlobj; a.download = 'predictions_filtered.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(urlobj);
+    });
+    document.getElementById('batchUpload')?.addEventListener('change', async (e) => {
+      const f = e.target.files[0]; if (!f) return; const fd = new FormData(); fd.append('file', f);
+      const resp = await fetch('/api/v1/predictions/batch/upload', { method: 'POST', credentials: 'include', body: fd });
+      if (resp.ok) { alert('Batch upload accepted'); } else { alert('Batch upload failed'); }
+    });
     loadPredictionHistory();
   });
 </script>

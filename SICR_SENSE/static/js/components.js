@@ -227,34 +227,85 @@ function handleDropdownCheckbox(id, checkbox) {
     }));
 }
 
-// Authentication token helpers
-function getAuthToken() {
-    return localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
-}
+// Authentication now uses HTTP-only cookies for same-origin API auth
+async function refreshAccessToken() {
+    try {
+        const response = await fetch('/api/v1/auth/refresh', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
 
-function getRefreshToken() {
-    return localStorage.getItem('refresh_token') || sessionStorage.getItem('refresh_token');
-}
-
-function setAuthToken(key, value, remember = true) {
-    if (remember) {
-        localStorage.setItem(key, value);
-        sessionStorage.removeItem(key);
-    } else {
-        sessionStorage.setItem(key, value);
-        localStorage.removeItem(key);
+        return response.ok;
+    } catch (err) {
+        console.warn('Auth refresh failed:', err);
+        return false;
     }
 }
 
-function clearAuthTokens() {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    sessionStorage.removeItem('access_token');
-    sessionStorage.removeItem('refresh_token');
+async function fetchWithAuth(url, options = {}) {
+    options = options || {};
+    options.headers = new Headers(options.headers || {});
+    options.credentials = options.credentials || 'same-origin';
+
+    let response = await window.originalFetch(url, options);
+    if (response.status === 401) {
+        const refreshed = await refreshAccessToken();
+        if (refreshed) {
+            response = await window.originalFetch(url, options);
+        } else {
+            window.location.replace('/login');
+        }
+    }
+    return response;
 }
 
+window.fetchWithAuth = fetchWithAuth;
+
+if (!window.originalFetch) {
+    window.originalFetch = window.fetch.bind(window);
+}
+
+window.fetch = async function(input, init = {}) {
+    const request = input instanceof Request ? input : new Request(input, init);
+    const requestUrl = new URL(request.url, window.location.origin);
+    const sameOrigin = requestUrl.origin === window.location.origin;
+    const authBypassPaths = [
+        '/api/v1/auth/login',
+        '/api/v1/auth/signup',
+        '/api/v1/auth/refresh',
+        '/api/v1/auth/password/reset-request',
+        '/api/v1/auth/password/reset',
+        '/api/v1/auth/verify-email',
+        '/api/v1/auth/resend-verification'
+    ];
+
+    if (sameOrigin && requestUrl.pathname.startsWith('/api/v1/') && !authBypassPaths.some(path => requestUrl.pathname.startsWith(path))) {
+        const options = {
+            method: request.method,
+            headers: request.headers,
+            body: request.body,
+            mode: request.mode,
+            credentials: init.credentials || request.credentials,
+            cache: request.cache,
+            redirect: request.redirect,
+            referrer: request.referrer,
+            referrerPolicy: request.referrerPolicy,
+            integrity: request.integrity,
+            keepalive: request.keepalive,
+            signal: request.signal,
+            window: request.window
+        };
+
+        return fetchWithAuth(requestUrl.href, options);
+    }
+
+    return window.originalFetch(input, init);
+};
+
 async function logout() {
-    clearAuthTokens();
     try {
         await fetch('/api/v1/auth/logout', {
             method: 'POST',
@@ -265,6 +316,7 @@ async function logout() {
     }
     window.location.href = '/login';
 }
+
 
 // Close dropdowns on outside click
 document.addEventListener('click', (e) => {
@@ -582,6 +634,50 @@ function exportData() {
     // Trigger data export
     window.dispatchEvent(new CustomEvent('export-data'));
 }
+
+function refreshData() {
+    if (window.monitoring && typeof window.monitoring.refreshData === 'function') {
+        window.monitoring.refreshData();
+        return;
+    }
+    if (window.dashboard && typeof window.dashboard.fetchInitialData === 'function') {
+        window.dashboard.fetchInitialData();
+        return;
+    }
+    if (window.adminPanel && typeof window.adminPanel.loadSectionData === 'function') {
+        window.adminPanel.loadSectionData(window.adminPanel.currentSection);
+        return;
+    }
+    if (typeof loadPredictionHistory === 'function') {
+        loadPredictionHistory();
+        return;
+    }
+    window.location.reload();
+}
+
+window.addEventListener('export-data', () => {
+    if (typeof downloadPredictions === 'function') {
+        downloadPredictions();
+        return;
+    }
+    if (window.adminPanel && typeof window.adminPanel.exportSelectedUsers === 'function') {
+        window.adminPanel.exportSelectedUsers();
+        return;
+    }
+    if (window.monitoring && typeof window.monitoring.exportMetrics === 'function') {
+        window.monitoring.exportMetrics();
+        return;
+    }
+    if (window.dashboard && typeof window.dashboard.exportDashboardData === 'function') {
+        window.dashboard.exportDashboardData();
+        return;
+    }
+    if (typeof toast !== 'undefined' && toast.info) {
+        toast.info('No export action available for this page.');
+    } else {
+        alert('No export action available for this page.');
+    }
+});
 
 function handleGlobalSearch(event) {
     const query = event.target.value;
@@ -1470,110 +1566,7 @@ document.querySelectorAll('canvas[id^="sparkline-"]').forEach(canvas => {
     }
 });
 
-/* === theme-toggle.html === */
-// Theme management
-const ThemeManager = {
-    init() {
-        // Check saved theme
-        const savedTheme = localStorage.getItem('sicrsense-theme');
-        
-        if (savedTheme) {
-            this.setTheme(savedTheme);
-        } else {
-            // Check system preference
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            this.setTheme(prefersDark ? 'dark' : 'light');
-        }
-        
-        // Listen for system theme changes
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-            if (!localStorage.getItem('sicrsense-theme')) {
-                this.setTheme(e.matches ? 'dark' : 'light');
-            }
-        });
-    },
-    
-    setTheme(theme) {
-        const html = document.documentElement;
-        const icon = document.getElementById('theme-icon');
-        
-        if (theme === 'dark') {
-            html.classList.add('dark');
-            html.classList.remove('light');
-            if (icon) {
-                icon.classList.remove('fa-moon');
-                icon.classList.add('fa-sun');
-            }
-            document.body.style.colorScheme = 'dark';
-        } else {
-            html.classList.remove('dark');
-            html.classList.add('light');
-            if (icon) {
-                icon.classList.remove('fa-sun');
-                icon.classList.add('fa-moon');
-            }
-            document.body.style.colorScheme = 'light';
-        }
-        
-        // Update CSS custom properties
-        this.updateCSSVariables(theme);
-        
-        // Save preference
-        localStorage.setItem('sicrsense-theme', theme);
-        
-        // Dispatch event for other components
-        window.dispatchEvent(new CustomEvent('theme-changed', { detail: { theme } }));
-    },
-    
-    toggle() {
-        const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-        this.setTheme(currentTheme === 'dark' ? 'light' : 'dark');
-    },
-    
-    getCurrentTheme() {
-        return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-    },
-    
-    updateCSSVariables(theme) {
-        const root = document.documentElement;
-        
-        if (theme === 'dark') {
-            root.style.setProperty('--bg-primary', '#0a0a0f');
-            root.style.setProperty('--bg-secondary', '#131320');
-            root.style.setProperty('--bg-tertiary', '#1a1a2e');
-            root.style.setProperty('--text-primary', '#ffffff');
-            root.style.setProperty('--text-secondary', '#a0a0b0');
-            root.style.setProperty('--glass-bg', 'rgba(19, 19, 32, 0.6)');
-            root.style.setProperty('--glass-border', 'rgba(255, 255, 255, 0.1)');
-            root.style.setProperty('--input-bg', 'rgba(255, 255, 255, 0.05)');
-        } else {
-            root.style.setProperty('--bg-primary', '#f8fafc');
-            root.style.setProperty('--bg-secondary', '#ffffff');
-            root.style.setProperty('--bg-tertiary', '#f1f5f9');
-            root.style.setProperty('--text-primary', '#0f172a');
-            root.style.setProperty('--text-secondary', '#64748b');
-            root.style.setProperty('--glass-bg', 'rgba(255, 255, 255, 0.7)');
-            root.style.setProperty('--glass-border', 'rgba(0, 0, 0, 0.05)');
-            root.style.setProperty('--input-bg', '#f1f5f9');
-        }
-    }
-};
-
-// Initialize
-ThemeManager.init();
-
-// Global toggle function
-function toggleTheme() {
-    ThemeManager.toggle();
-}
-
-// Smooth transition for theme change
-document.addEventListener('theme-changed', () => {
-    document.documentElement.style.transition = 'background-color 0.3s ease, color 0.3s ease';
-    setTimeout(() => {
-        document.documentElement.style.transition = '';
-    }, 300);
-});
+/* Theme handling moved to /static/js/theme-manager.js */
 
 /* === toast.html === */
 class ToastManager {
@@ -1742,12 +1735,7 @@ document.addEventListener('click', (e) => {
 // Fetch user info and update avatar
 async function updateUserInfo() {
     try {
-        const token = getAuthToken();
-        if (!token) return;
-        
-        const response = await fetch('/api/v1/auth/me', {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await fetch('/api/v1/auth/me');
         
         if (response.ok) {
             const user = await response.json();
@@ -1794,10 +1782,8 @@ class WebSocketStatus {
     connect() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws`;
-        const token = getAuthToken();
-        
         try {
-            this.ws = new WebSocket(`${wsUrl}?token=${token}`);
+            this.ws = new WebSocket(wsUrl);
             
             this.ws.onopen = () => {
                 this.connected = true;
@@ -1805,8 +1791,15 @@ class WebSocketStatus {
                 this.updateUI();
                 this.startPing();
                 
+                // Flush queued messages first
+                if (this._queued && this._queued.length > 0) {
+                    this._queued.forEach(m => {
+                        try { this.ws.send(JSON.stringify(m)); } catch(e) { console.warn('Failed queued send', e); }
+                    });
+                    this._queued = [];
+                }
                 // Subscribe to channels
-                this.ws.send(JSON.stringify({ type: 'subscribe_metrics' }));
+                try { this.ws.send(JSON.stringify({ type: 'subscribe_metrics' })); } catch(e) { console.warn('Subscribe failed', e); }
             };
             
             this.ws.onclose = () => {
@@ -1822,16 +1815,36 @@ class WebSocketStatus {
             };
             
             this.ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                if (data.type === 'pong') {
-                    this.latency = Date.now() - data.server_time;
-                    this.updateLatency();
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'pong') {
+                        this.latency = Date.now() - (data.server_time || Date.now());
+                        this.updateLatency();
+                    }
+                    // Dispatch a global event for other modules (monitoring, dashboard)
+                    window.dispatchEvent(new CustomEvent('ws-message', { detail: data }));
+                } catch (e) {
+                    console.error('Failed to parse WS message:', e);
                 }
             };
         } catch (error) {
             console.error('WebSocket connection failed:', error);
             this.connected = false;
             this.updateUI();
+        }
+    }
+
+    sendMessage(msg) {
+        try {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify(msg));
+            } else {
+                // Queue messages until connected
+                this._queued = this._queued || [];
+                this._queued.push(msg);
+            }
+        } catch (e) {
+            console.error('Failed to send WS message:', e);
         }
     }
     
@@ -1894,4 +1907,16 @@ class WebSocketStatus {
 
 // Initialize
 const wsStatus = new WebSocketStatus();
+// Ensure charts update when theme changes
+window.addEventListener('themechange', () => {
+    if (window.Chart && typeof Chart.getChart === 'function') {
+        document.querySelectorAll('canvas').forEach(c => {
+            try {
+                const ch = Chart.getChart(c);
+                if (ch && typeof ch.update === 'function') ch.update();
+            } catch (e) { /* ignore canvas without charts */ }
+        });
+    }
+});
+
 wsStatus.connect();

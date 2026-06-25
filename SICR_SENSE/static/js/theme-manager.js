@@ -54,10 +54,14 @@ class ThemeManager {
      */
     loadThemePreference() {
         try {
-            const saved = localStorage.getItem(this.storageKey);
+            // Prefer the configured storage key, but fall back to legacy 'theme'
+            const saved = localStorage.getItem(this.storageKey) || localStorage.getItem('theme');
             if (saved === 'light') {
                 this.setTheme(false);
+            } else if (saved === 'dark') {
+                this.setTheme(true);
             } else {
+                // Default to dark if not set
                 this.setTheme(true);
             }
         } catch (e) {
@@ -133,7 +137,7 @@ class ThemeManager {
 // This will automatically setup theme management on any page that includes this script
 document.addEventListener('DOMContentLoaded', () => {
     // Only auto-initialize if there's a theme toggle button on the page
-    if (document.querySelector('#themeToggle')) {
+    if (document.querySelector('#themeToggle') && !window.themeManager) {
         window.themeManager = new ThemeManager();
     }
 });

@@ -79,6 +79,21 @@
             <span>User Management</span>
         </a>
         
+        <a href="/admin/activity" class="nav-item {{ 'active' if active_page == 'activity' else '' }}" data-section="activity">
+            <i class="fas fa-history w-5"></i>
+            <span>Activity</span>
+        </a>
+        
+        <a href="/admin/sessions" class="nav-item {{ 'active' if active_page == 'sessions' else '' }}" data-section="sessions">
+            <i class="fas fa-wifi w-5"></i>
+            <span>Sessions</span>
+        </a>
+        
+        <a href="/admin/security" class="nav-item {{ 'active' if active_page == 'security' else '' }}" data-section="security">
+            <i class="fas fa-lock w-5"></i>
+            <span>Security</span>
+        </a>
+        
         <a href="/admin/audit" class="nav-item {{ 'active' if active_page == 'audit' else '' }}" data-section="audit">
             <i class="fas fa-clipboard-list w-5"></i>
             <span>Audit Logs</span>

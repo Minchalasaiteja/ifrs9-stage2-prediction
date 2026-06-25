@@ -307,3 +307,50 @@ async def get_user_activity(
     except Exception as e:
         logger.error(f"Failed to get activity logs: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/sessions")
+async def get_active_sessions(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    current_user: dict = Depends(admin_only)
+):
+    """Get active user sessions"""
+    try:
+        now = datetime.utcnow()
+        query = {"expires_at": {"$gt": now}}
+        total = await db.sessions.count_documents(query)
+        sessions = await db.sessions.find(query) \
+            .sort("created_at", -1) \
+            .skip((page - 1) * limit) \
+            .limit(limit) \
+            .to_list(length=limit)
+
+        session_list = []
+        user_ids = {str(s.get("user_id")) for s in sessions if s.get("user_id")}
+        users = []
+        if user_ids:
+            users = await db.users.find({"_id": {"$in": [ObjectId(uid) for uid in user_ids if ObjectId.is_valid(uid)]}}).to_list(length=len(user_ids))
+        user_map = {str(u["_id"]): u for u in users}
+
+        for session in sessions:
+            user_id = str(session.get("user_id")) if session.get("user_id") else None
+            user = user_map.get(user_id)
+            session_list.append({
+                "id": str(session.get("_id")),
+                "user_id": user_id,
+                "username": user.get("username") if user else "Unknown",
+                "created_at": session.get("created_at"),
+                "expires_at": session.get("expires_at"),
+                "is_active": session.get("expires_at") and session.get("expires_at") > now,
+                "ip_address": session.get("ip_address", "-")
+            })
+
+        return {
+            "sessions": session_list,
+            "total": total,
+            "page": page,
+            "pages": (total + limit - 1) // limit
+        }
+    except Exception as e:
+        logger.error(f"Failed to get sessions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

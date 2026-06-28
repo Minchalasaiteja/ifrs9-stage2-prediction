@@ -39,11 +39,15 @@ class IFRS9Stage(str, Enum):
 
 class UserBase(BaseModel):
     """Base user schema"""
-    username: str = Field(..., min_length=3, max_length=50, pattern=r'^[a-zA-Z0-9_]+$')
+    username: str = Field(..., min_length=3, max_length=50)
+    # FIX: Changed 'regex' to 'pattern' for Pydantic v2
     email: str = Field(..., pattern=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
-    first_name: str = Field(..., min_length=1, max_length=50)
-    last_name: Optional[str] = Field(None, min_length=1, max_length=50)
-    company: Optional[str] = Field(None, max_length=100)
+    first_name: str = Field(default="Unknown", alias="firstName")
+    last_name: Optional[str] = Field(None, alias="lastName")
+    company: Optional[str] = None
+    
+    # Allow population by either field name or alias
+    model_config = ConfigDict(populate_by_name=True)
 
 class UserCreate(UserBase):
     """User creation schema"""
@@ -88,6 +92,7 @@ class UserUpdate(BaseModel):
     first_name: Optional[str] = Field(None, min_length=1, max_length=50)
     last_name: Optional[str] = Field(None, min_length=1, max_length=50)
     company: Optional[str] = Field(None, max_length=100)
+    # FIX: Changed 'regex' to 'pattern' for Pydantic v2
     email: Optional[str] = Field(None, pattern=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
 
 class PasswordChange(BaseModel):
@@ -189,18 +194,20 @@ class LoanInput(BaseModel):
     
     @field_validator('outstanding_balance_gbp')
     @classmethod
-    def balance_not_exceed_loan(cls, v: float, info: Dict[str, Any]) -> float:
+    def balance_not_exceed_loan(cls, v: float, info) -> float:
         """Validate outstanding balance doesn't exceed loan amount"""
-        if 'loan_amount_gbp' in info.data and v > info.data['loan_amount_gbp']:
-            raise ValueError(f'Outstanding balance ({v}) cannot exceed loan amount ({info.data["loan_amount_gbp"]})')
+        data = info.data if hasattr(info, 'data') else {}
+        if 'loan_amount_gbp' in data and v > data['loan_amount_gbp']:
+            raise ValueError(f'Outstanding balance ({v}) cannot exceed loan amount ({data["loan_amount_gbp"]})')
         return v
 
     @field_validator('remaining_term_months')
     @classmethod
-    def term_not_exceed_original(cls, v: int, info: Dict[str, Any]) -> int:
+    def term_not_exceed_original(cls, v: int, info) -> int:
         """Validate remaining term doesn't exceed original term"""
-        if 'original_loan_term_months' in info.data and v > info.data['original_loan_term_months']:
-            raise ValueError(f'Remaining term ({v}) cannot exceed original term ({info.data["original_loan_term_months"]})')
+        data = info.data if hasattr(info, 'data') else {}
+        if 'original_loan_term_months' in data and v > data['original_loan_term_months']:
+            raise ValueError(f'Remaining term ({v}) cannot exceed original term ({data["original_loan_term_months"]})')
         return v
     
     @field_validator('vintage_year')

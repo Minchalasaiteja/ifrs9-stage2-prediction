@@ -167,6 +167,10 @@ async def predict_batch_loans(
         logger.error(f"Batch prediction failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+# ============================================================================
+# IMPORTANT: Specific routes MUST come BEFORE catch-all routes
+# ============================================================================
+
 @router.get("/history")
 async def get_prediction_history(
     page: int = 1,
@@ -218,8 +222,7 @@ async def get_prediction_history(
         logger.error(f"Failed to get prediction history: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@router.get('/history/all')
+@router.get("/history/all")
 async def get_all_prediction_history(
     page: int = 1,
     limit: int = 50,
@@ -229,7 +232,7 @@ async def get_all_prediction_history(
     status: str = '',
     start_date: str = '',
     end_date: str = '',
-    current_user: dict = Depends(RoleChecker(['admin']))
+    current_user: dict = Depends(RoleChecker(['get_current_active_user']))
 ):
     """Admin: Get paged prediction history with filters"""
     try:
@@ -279,29 +282,25 @@ async def get_all_prediction_history(
         logger.error(f'Failed to fetch all prediction history: {e}', exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/stats")
+async def get_prediction_stats(
+    current_user: dict = Depends(get_current_active_user)
+):
+    """Get real-time prediction statistics"""
+    return {
+        "daily_predictions": metrics_manager.daily_counter,
+        "model_version": model_service.model_version if model_service else "simulation",
+        "active_websockets": ws_manager.connection_stats["active_connections"],
+        "total_messages_sent": ws_manager.connection_stats["messages_sent"],
+        "uptime_hours": round(
+            (datetime.utcnow() - metrics_manager.start_time).total_seconds() / 3600, 2
+        ) if hasattr(metrics_manager, 'start_time') else 0
+    }
 
-@router.get('/{prediction_id}')
-async def get_prediction_detail(prediction_id: str, current_user: dict = Depends(get_current_active_user)):
-    """Return detailed prediction record. Admins can access any; users only their own."""
-    try:
-        obj_id = ObjectId(prediction_id) if ObjectId.is_valid(prediction_id) else prediction_id
-        pred = await db.predictions.find_one({'_id': obj_id})
-        if not pred:
-            raise HTTPException(status_code=404, detail='Prediction not found')
-        # Authorization: admin or owner
-        if current_user.get('role') != 'admin' and str(pred.get('user_id')) != str(current_user.get('_id')):
-            raise HTTPException(status_code=403, detail='Forbidden')
-        # Return full record
-        pred['_id'] = str(pred['_id'])
-        return pred
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error('Failed to load prediction detail: %s', e)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get('/export')
+# ============================================================================
+# EXPORT ROUTE - MUST come BEFORE /{prediction_id}
+# ============================================================================
+@router.get("/export")
 async def export_predictions(
     search: str = '',
     risk_filter: str = '',
@@ -354,9 +353,12 @@ async def export_predictions(
         logger.error('Export failed: %s', e)
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@router.post('/batch/upload')
-async def upload_batch_file(file: UploadFile = File(...), background_tasks: BackgroundTasks = None, current_user: dict = Depends(get_current_active_user)):
+@router.post("/batch/upload")
+async def upload_batch_file(
+    file: UploadFile = File(...),
+    background_tasks: BackgroundTasks = None,
+    current_user: dict = Depends(get_current_active_user)
+):
     """Upload CSV for batch prediction processing. CSV expected with headers matching model input keys."""
     if not file:
         raise HTTPException(status_code=400, detail='No file uploaded')
@@ -369,6 +371,35 @@ async def upload_batch_file(file: UploadFile = File(...), background_tasks: Back
     background_tasks.add_task(process_batch_file, str(current_user['_id']), content, filename)
     return {'status': 'accepted', 'filename': filename}
 
+# ============================================================================
+# CATCH-ALL ROUTE - MUST come LAST
+# ============================================================================
+@router.get("/{prediction_id}")
+async def get_prediction_detail(
+    prediction_id: str,
+    current_user: dict = Depends(get_current_active_user)
+):
+    """Return detailed prediction record. Admins can access any; users only their own."""
+    try:
+        obj_id = ObjectId(prediction_id) if ObjectId.is_valid(prediction_id) else prediction_id
+        pred = await db.predictions.find_one({'_id': obj_id})
+        if not pred:
+            raise HTTPException(status_code=404, detail='Prediction not found')
+        # Authorization: admin or owner
+        if current_user.get('role') != 'admin' and str(pred.get('user_id')) != str(current_user.get('_id')):
+            raise HTTPException(status_code=403, detail='Forbidden')
+        # Return full record
+        pred['_id'] = str(pred['_id'])
+        return pred
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error('Failed to load prediction detail: %s', e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# Helper Functions (these don't affect route ordering)
+# ============================================================================
 
 async def process_batch_file(user_id: str, content: bytes, filename: str):
     """Background worker to process CSV batch uploads"""
@@ -409,21 +440,6 @@ async def process_batch_file(user_id: str, content: bytes, filename: str):
             await db.audit_logs.insert_one({'user_id': user_id, 'action': 'batch_upload_failed', 'filename': filename, 'error': str(e), 'timestamp': datetime.utcnow()})
         except Exception:
             pass
-
-@router.get("/stats")
-async def get_prediction_stats(
-    current_user: dict = Depends(get_current_active_user)
-):
-    """Get real-time prediction statistics"""
-    return {
-        "daily_predictions": metrics_manager.daily_counter,
-        "model_version": model_service.model_version if model_service else "simulation",
-        "active_websockets": ws_manager.connection_stats["active_connections"],
-        "total_messages_sent": ws_manager.connection_stats["messages_sent"],
-        "uptime_hours": round(
-            (datetime.utcnow() - metrics_manager.start_time).total_seconds() / 3600, 2
-        ) if hasattr(metrics_manager, 'start_time') else 0
-    }
 
 async def save_prediction_to_db(user_id: str, input_data: dict, prediction: dict, latency: float):
     """Save prediction to database"""

@@ -25,7 +25,7 @@
                    {{ 'required' if required }}
                    {{ 'disabled' if disabled }}
                    {{ 'readonly' if readonly }}
-                   {% if pattern %}pattern="{{ pattern }}"{% endif %}
+                   {% if regex %}regex="{{ regex }}"{% endif %}
                    {% if min %}min="{{ min }}"{% endif %}
                    {% if max %}max="{{ max }}"{% endif %}
                    {% if minlength %}minlength="{{ minlength }}"{% endif %}

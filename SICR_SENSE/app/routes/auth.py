@@ -72,13 +72,17 @@ async def signup(user_data: UserCreate, request: Request, background_tasks: Back
         if not user_dict.get("last_name"):
             user_dict["last_name"] = user_dict["first_name"]
 
+        # Make the first registered user an admin
+        user_count = await db.users.count_documents({})
+        assigned_role = "admin" if user_count == 0 else "user"
+        
         user_dict.update({
             "password_hash": JWTHandler.hash_password(user_data.password),
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
             "is_active": True,
             "is_verified": False,
-            "role": "user",
+            "role": assigned_role,
             "two_factor_enabled": False,
             "login_attempts": 0,
             "last_login": None
@@ -118,7 +122,8 @@ async def signup(user_data: UserCreate, request: Request, background_tasks: Back
             "action": "signup",
             "timestamp": datetime.utcnow(),
             "ip_address": client_ip,
-            "user_agent": user_agent
+            "user_agent": user_agent,
+            "details": f"User registered with role: {assigned_role}"
         })
         
         response = JSONResponse(content={
@@ -129,7 +134,7 @@ async def signup(user_data: UserCreate, request: Request, background_tasks: Back
                 "id": user_id,
                 "username": user_data.username,
                 "email": user_data.email,
-                "role": "user"
+                "role": assigned_role
             }
         })
         set_auth_cookies(response, access_token, refresh_token)
@@ -360,6 +365,11 @@ async def get_me(current_user: dict = Depends(get_current_user)):
     """Return current authenticated user information"""
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    # Convert ObjectId to string for JSON serialization
+    if "_id" in current_user:
+        current_user["_id"] = str(current_user["_id"])
+    
     return current_user
 
 @router.get("/verify-email")
@@ -508,6 +518,9 @@ async def change_password(
     
     return {"message": "Password changed successfully"}
 
+# ============================================================
+# FIX: update_email endpoint - handle missing email service method
+# ============================================================
 @router.post("/update-email")
 async def update_email(
     current_user: dict = Depends(get_current_user),
@@ -549,13 +562,28 @@ async def update_email(
         }
     )
     
-    # Send verification email
-    background_tasks.add_task(
-        EmailService.send_email_change_verification,
-        new_email,
-        verification_token,
-        user.get("username", user.get("email"))
-    )
+    # FIX: Check if method exists before calling
+    if hasattr(EmailService, 'send_email_change_verification'):
+        # Send verification email if method exists
+        background_tasks.add_task(
+            EmailService.send_email_change_verification,
+            new_email,
+            verification_token,
+            user.get("username", user.get("email"))
+        )
+    else:
+        # Log that the method doesn't exist
+        logger.warning(f"EmailService.send_email_change_verification not implemented. Email change requested for user: {user.get('username')}")
+        # Optionally send a simple notification email
+        try:
+            background_tasks.add_task(
+                EmailService.send_verification_email,
+                new_email,
+                verification_token,
+                user.get("username", user.get("email"))
+            )
+        except Exception as e:
+            logger.error(f"Failed to send verification email: {e}")
     
     # Log audit
     await db.audit_logs.insert_one({

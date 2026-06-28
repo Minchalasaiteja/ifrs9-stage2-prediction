@@ -246,9 +246,28 @@ async function refreshAccessToken() {
 }
 
 async function fetchWithAuth(url, options = {}) {
+    // Ensure options is an object
     options = options || {};
+    // Normalise headers to a Headers instance
     options.headers = new Headers(options.headers || {});
+    // Default to same-origin credentials for API calls
     options.credentials = options.credentials || 'same-origin';
+    
+    // ---------------------------------------------------------------------
+    // Handle duplex for streaming bodies
+    // ---------------------------------------------------------------------
+    // The Fetch spec requires the `duplex` member to be set to "half" when the
+    // request body is a ReadableStream. Some browsers (Chrome) also treat
+    // FormData as a streaming body and will throw the same error if `duplex`
+    // is omitted. We therefore add support for both cases.
+    if (options.body) {
+        const isReadableStream = typeof options.body === 'object' && typeof options.body.getReader === 'function';
+        const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+        if (isReadableStream || isFormData) {
+            // Only set duplex for streaming bodies; omit for plain strings.
+            options.duplex = 'half';
+        }
+    }
 
     let response = await window.originalFetch(url, options);
     if (response.status === 401) {
@@ -268,9 +287,74 @@ if (!window.originalFetch) {
     window.originalFetch = window.fetch.bind(window);
 }
 
+// ============================================================
+// FIXED: window.fetch override - properly handles duplex
+// ============================================================
 window.fetch = async function(input, init = {}) {
-    const request = input instanceof Request ? input : new Request(input, init);
-    const requestUrl = new URL(request.url, window.location.origin);
+    // If input is a Request object, handle it differently
+    if (input instanceof Request) {
+        const request = input;
+        const requestUrl = new URL(request.url, window.location.origin);
+        const sameOrigin = requestUrl.origin === window.location.origin;
+        const authBypassPaths = [
+            '/api/v1/auth/login',
+            '/api/v1/auth/signup',
+            '/api/v1/auth/refresh',
+            '/api/v1/auth/password/reset-request',
+            '/api/v1/auth/password/reset',
+            '/api/v1/auth/verify-email',
+            '/api/v1/auth/resend-verification'
+        ];
+
+        if (sameOrigin && requestUrl.pathname.startsWith('/api/v1/') && 
+            !authBypassPaths.some(path => requestUrl.pathname.startsWith(path))) {
+            
+            // Build options from the Request object
+            const options = {
+                method: request.method,
+                headers: request.headers,
+                body: request.body,
+                mode: request.mode,
+                credentials: init.credentials || request.credentials,
+                cache: request.cache,
+                redirect: request.redirect,
+                referrer: request.referrer,
+                referrerPolicy: request.referrerPolicy,
+                integrity: request.integrity,
+                keepalive: request.keepalive,
+                window: request.window,
+                signal: request.signal,
+                duplex: request.body ? 'half' : undefined
+                
+            };
+            
+            // Handle the body carefully
+            if (request.body) {
+                try {
+                    // Try to clone and read the body as text
+                    const clonedRequest = request.clone();
+                    const bodyText = await clonedRequest.text();
+                    if (bodyText) {
+                        options.body = bodyText;
+                    }
+                } catch (e) {
+                    // If we can't read the body, it's likely a stream
+                    // Add duplex: 'half' for streaming bodies
+                    options.body = request.body;
+                    options.duplex = 'half';
+                }
+            }
+            
+            return fetchWithAuth(requestUrl.href, options);
+        }
+        
+        // Non-API request with Request object - pass through
+        return window.originalFetch(input, init);
+    }
+    
+    // Handle string URL case
+    const url = typeof input === 'string' ? input : input.url;
+    const requestUrl = new URL(url, window.location.origin);
     const sameOrigin = requestUrl.origin === window.location.origin;
     const authBypassPaths = [
         '/api/v1/auth/login',
@@ -282,24 +366,18 @@ window.fetch = async function(input, init = {}) {
         '/api/v1/auth/resend-verification'
     ];
 
-    if (sameOrigin && requestUrl.pathname.startsWith('/api/v1/') && !authBypassPaths.some(path => requestUrl.pathname.startsWith(path))) {
-        const options = {
-            method: request.method,
-            headers: request.headers,
-            body: request.body,
-            mode: request.mode,
-            credentials: init.credentials || request.credentials,
-            cache: request.cache,
-            redirect: request.redirect,
-            referrer: request.referrer,
-            referrerPolicy: request.referrerPolicy,
-            integrity: request.integrity,
-            keepalive: request.keepalive,
-            signal: request.signal,
-            window: request.window
-        };
-
-        return fetchWithAuth(requestUrl.href, options);
+    if (sameOrigin && requestUrl.pathname.startsWith('/api/v1/') && 
+        !authBypassPaths.some(path => requestUrl.pathname.startsWith(path))) {
+        
+        const options = { ...init };
+        options.credentials = options.credentials || 'same-origin';
+        
+        // Check if body is a ReadableStream (needs duplex)
+        if (options.body && typeof options.body === 'object' && typeof options.body.getReader === 'function') {
+            options.duplex = 'half';
+        }
+        
+        return fetchWithAuth(url, options);
     }
 
     return window.originalFetch(input, init);
@@ -1374,7 +1452,7 @@ class SearchManager {
     
     highlightMatch(text, query) {
         if (!query) return text;
-        const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        const regex = new regexp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
         return text.replace(regex, '<mark class="bg-cyan-400/20 text-cyan-400 rounded px-0.5">$1</mark>');
     }
     
@@ -1768,7 +1846,9 @@ async function updateUserInfo() {
 // Update on page load
 updateUserInfo();
 
-/* === ws-status.html === */
+/* ============================================================
+ * FIXED: WebSocketStatus - includes authentication token
+ * ============================================================ */
 class WebSocketStatus {
     constructor() {
         this.connected = false;
@@ -1777,21 +1857,48 @@ class WebSocketStatus {
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
         this.ws = null;
+        this._queued = [];
+    }
+    
+    /**
+     * Get the authentication token from cookies or localStorage
+     */
+    getToken() {
+        // Try to get from cookies
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'access_token') {
+                return decodeURIComponent(value);
+            }
+        }
+        // Try localStorage as fallback
+        const token = localStorage.getItem('access_token');
+        if (token) {
+            return token;
+        }
+        // Try sessionStorage as last resort
+        return sessionStorage.getItem('access_token') || '';
     }
     
     connect() {
+        const token = this.getToken();
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        const wsUrl = `${protocol}//${window.location.host}/ws?token=${encodeURIComponent(token)}`;
+        
+        console.log('[WebSocket] Connecting with token:', token ? 'Token present (length: ' + token.length + ')' : 'No token');
+        
         try {
             this.ws = new WebSocket(wsUrl);
             
             this.ws.onopen = () => {
+                console.log('[WebSocket] Connected successfully');
                 this.connected = true;
                 this.reconnectAttempts = 0;
                 this.updateUI();
                 this.startPing();
                 
-                // Flush queued messages first
+                // Flush queued messages
                 if (this._queued && this._queued.length > 0) {
                     this._queued.forEach(m => {
                         try { this.ws.send(JSON.stringify(m)); } catch(e) { console.warn('Failed queued send', e); }
@@ -1800,16 +1907,22 @@ class WebSocketStatus {
                 }
                 // Subscribe to channels
                 try { this.ws.send(JSON.stringify({ type: 'subscribe_metrics' })); } catch(e) { console.warn('Subscribe failed', e); }
+                try { this.ws.send(JSON.stringify({ type: 'subscribe_predictions' })); } catch(e) { console.warn('Subscribe failed', e); }
             };
             
-            this.ws.onclose = () => {
+            this.ws.onclose = (event) => {
+                console.log('[WebSocket] Disconnected. Code:', event.code, 'Reason:', event.reason);
                 this.connected = false;
                 this.stopPing();
                 this.updateUI();
-                this.reconnect();
+                // Only attempt reconnect if not a normal closure
+                if (event.code !== 1000 && event.code !== 1001) {
+                    this.reconnect();
+                }
             };
             
-            this.ws.onerror = () => {
+            this.ws.onerror = (error) => {
+                console.error('[WebSocket] Error:', error);
                 this.connected = false;
                 this.updateUI();
             };
@@ -1820,17 +1933,22 @@ class WebSocketStatus {
                     if (data.type === 'pong') {
                         this.latency = Date.now() - (data.server_time || Date.now());
                         this.updateLatency();
+                    } else if (data.type === 'connection_established') {
+                        console.log('[WebSocket] Connection established:', data.message);
+                    } else if (data.type === 'error') {
+                        console.error('[WebSocket] Server error:', data.message);
                     }
-                    // Dispatch a global event for other modules (monitoring, dashboard)
+                    // Dispatch a global event for other modules
                     window.dispatchEvent(new CustomEvent('ws-message', { detail: data }));
                 } catch (e) {
-                    console.error('Failed to parse WS message:', e);
+                    console.error('[WebSocket] Failed to parse message:', e);
                 }
             };
         } catch (error) {
-            console.error('WebSocket connection failed:', error);
+            console.error('[WebSocket] Connection failed:', error);
             this.connected = false;
             this.updateUI();
+            this.reconnect();
         }
     }
 
@@ -1844,7 +1962,7 @@ class WebSocketStatus {
                 this._queued.push(msg);
             }
         } catch (e) {
-            console.error('Failed to send WS message:', e);
+            console.error('[WebSocket] Failed to send message:', e);
         }
     }
     
@@ -1852,10 +1970,12 @@ class WebSocketStatus {
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
             this.reconnectAttempts++;
             const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
-            
+            console.log(`[WebSocket] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
             setTimeout(() => {
                 this.connect();
             }, delay);
+        } else {
+            console.warn('[WebSocket] Max reconnect attempts reached');
         }
     }
     
@@ -1905,8 +2025,9 @@ class WebSocketStatus {
     }
 }
 
-// Initialize
+// Initialize WebSocket status
 const wsStatus = new WebSocketStatus();
+
 // Ensure charts update when theme changes
 window.addEventListener('themechange', () => {
     if (window.Chart && typeof Chart.getChart === 'function') {
@@ -1919,4 +2040,13 @@ window.addEventListener('themechange', () => {
     }
 });
 
-wsStatus.connect();
+// Connect WebSocket after DOM is ready or immediately
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        // Wait a moment for auth to be ready
+        setTimeout(() => wsStatus.connect(), 500);
+    });
+} else {
+    // Wait a moment for auth to be ready
+    setTimeout(() => wsStatus.connect(), 500);
+}

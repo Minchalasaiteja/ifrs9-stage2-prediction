@@ -7,14 +7,10 @@ from datetime import datetime
 from pathlib import Path
 from bson import ObjectId
 
-from fastapi import FastAPI, Request, Depends, WebSocket, WebSocketDisconnect, BackgroundTasks
+from fastapi import FastAPI, Request, Depends, WebSocket, WebSocketDisconnect, BackgroundTasks, Query, Cookie
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.middleware.cors import CORSMiddleware
-
-# temp
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
 from fastapi.middleware.cors import CORSMiddleware
 import json
 from typing import Optional
@@ -22,12 +18,8 @@ from typing import Optional
 from app.websocket_handler import ws_manager
 from .database import db
 from .config import settings
-#temp
-
-from .config import settings
 from .auth.jwt_handler import JWTHandler
-from .database import db, Database
-from .websocket_handler import ws_manager
+from .database import Database
 
 # Setup logging
 logging.basicConfig(
@@ -99,8 +91,11 @@ try:
 except ImportError as e:
     logger.warning(f"Failed to import reports router: {e}")
 
+# ============================================================
+# FIX: Corrected import path - added the dot for relative import
+# ============================================================
 try:
-    from routes import utils
+    from .routes import utils  # <--- Changed from 'from routes import utils'
     app.include_router(utils.router, prefix="/api/v1", tags=["utility"])
 except ImportError as e:
     logger.warning(f"Failed to import utility router: {e}")
@@ -122,14 +117,28 @@ async def startup_event():
     """Application startup events"""
     logger.info("Initializing database connection...")
     await Database.connect_db()
+    
+    # Set database reference for WebSocket manager
+    ws_manager.set_database(db)
+    
     logger.info("Starting WebSocket background tasks...")
     ws_manager.start_background_tasks()
+    
+    # Create database indexes if needed
+    try:
+        await db.predictions.create_index("timestamp")
+        await db.predictions.create_index("output.risk_tier")
+        await db.audit_logs.create_index("timestamp")
+        logger.info("Database indexes created")
+    except Exception as e:
+        logger.warning(f"Could not create indexes: {e}")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Application shutdown events"""
     logger.info("Closing database connection...")
     await Database.close_db()
+    await ws_manager.cleanup()
 
 
 def parse_object_id(value: str):
@@ -139,6 +148,7 @@ def parse_object_id(value: str):
         return ObjectId(value)
     except Exception:
         return value
+
 async def get_optional_user(request: Request):
     token = request.cookies.get("access_token")
     if not token:
@@ -151,28 +161,10 @@ async def get_optional_user(request: Request):
         payload = JWTHandler.decode_token(token)
         user_id = payload.get("sub")
         if user_id:
-            return await db.users.find_one({"_id": parse_object_id(user_id)})
-    except Exception:
-        return None
-    except Exception:
-        return None
-
-async def get_user_from_ws_token(websocket: WebSocket):
-    token = websocket.query_params.get("token")
-    if not token:
-        auth_header = websocket.headers.get("authorization")
-        if auth_header and auth_header.lower().startswith("bearer "):
-            token = auth_header.split(" ", 1)[1]
-    if not token:
-        # Fallback to cookies since the dashboard heavily relies on them
-        token = websocket.cookies.get("access_token")
-    if not token:
-        return None
-    try:
-        payload = JWTHandler.decode_token(token)
-        user_id = payload.get("sub")
-        if user_id:
-            return await db.users.find_one({"_id": parse_object_id(user_id)})
+            user = await db.users.find_one({"_id": parse_object_id(user_id)})
+            if user and "_id" in user:
+                user["_id"] = str(user["_id"])
+            return user
     except Exception:
         return None
 
@@ -441,8 +433,6 @@ async def openapi_redirect():
 # API Endpoints (Minimal)
 # ==============================
 
-
-
 try:
     from .model_service import IFRS9ModelService
     model_service = IFRS9ModelService()
@@ -596,28 +586,34 @@ async def server_error_handler(request: Request, exc):
         "color": "red"
     }, status_code=500)
 
-
-
+# ==============================
+# WebSocket Endpoint
+# ==============================
 @app.websocket("/ws")
 async def websocket_endpoint(
     websocket: WebSocket,
-    token: Optional[str] = Query(None)
+    token: Optional[str] = Query(None),
+    access_token: Optional[str] = Cookie(None)
 ):
     """WebSocket endpoint for real-time updates"""
     # Set database reference if not set
     if not ws_manager.db:
         ws_manager.set_database(db)
     
-    # Try to get token from cookies if not in query params
-    if not token:
-        token = websocket.cookies.get("access_token")
+    # Try to get token from multiple sources
+    auth_token = token or access_token
     
-    # Connect with authentication
-    await ws_manager.connect(websocket, token)
+    if not auth_token:
+        auth_header = websocket.headers.get("authorization")
+        if auth_header and auth_header.lower().startswith("bearer "):
+            auth_token = auth_header.split(" ", 1)[1]
+    
+    logger.info(f"WebSocket connection attempt - Token present: {bool(auth_token)}")
+    
+    await ws_manager.connect(websocket, auth_token)
     
     try:
         while True:
-            # Receive messages
             data = await websocket.receive_text()
             try:
                 message = json.loads(data)
@@ -630,36 +626,9 @@ async def websocket_endpoint(
             except Exception as e:
                 logger.error(f"Error processing WebSocket message: {e}")
                 
-    except WebSocketDisconnect:
+    except WebSocketDisconnect as e:
+        logger.info(f"WebSocket disconnected: {e}")
         ws_manager.disconnect(websocket)
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
         ws_manager.disconnect(websocket)
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize on startup"""
-    logger.info("Starting up application...")
-    
-    # Set database reference
-    ws_manager.set_database(db)
-    
-    # Start WebSocket background tasks
-    ws_manager.start_background_tasks()
-    
-    # Create database indexes if needed
-    try:
-        await db.predictions.create_index("timestamp")
-        await db.predictions.create_index("output.risk_tier")
-        await db.audit_logs.create_index("timestamp")
-        logger.info("Database indexes created")
-    except Exception as e:
-        logger.warning(f"Could not create indexes: {e}")
-
-# Shutdown event
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Clean up on shutdown"""
-    logger.info("Shutting down application...")
-    await ws_manager.cleanup()

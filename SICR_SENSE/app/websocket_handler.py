@@ -76,28 +76,71 @@ class WebSocketManager:
         except RuntimeError:
             logger.debug("Could not start background tasks: no running event loop")
     
+    # ============================================================
+    # FIX 1: AUTHENTICATE METHOD - Improved with better error handling
+    # ============================================================
     async def authenticate(self, token: Optional[str] = None) -> Optional[Dict]:
         """Authenticate WebSocket connection using JWT token"""
-        if not token or not self.db:
+        if not token:
+            logger.warning("WebSocket authentication: No token provided")
+            return None
+        
+        if not self.db:
+            logger.warning("WebSocket authentication: Database not initialized")
             return None
         
         try:
-            # Decode JWT token
-            # Assuming you have a SECRET_KEY in your settings
-            from ..config import settings
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+            # Strip "Bearer " prefix if frontend accidentally included it
+            if token.lower().startswith("bearer "):
+                token = token.split(" ", 1)[1]
+                logger.debug("WebSocket authentication: Stripped Bearer prefix")
             
-            # Get user from database
-            user = await self.db.users.find_one({"_id": ObjectId(payload.get("sub"))})
+            # Import JWTHandler
+            from .auth.jwt_handler import JWTHandler
+            
+            # Decode token
+            payload = JWTHandler.decode_token(token)
+            
+            if not payload:
+                logger.warning("WebSocket authentication: Invalid token payload")
+                return None
+            
+            user_id = payload.get("sub")
+            if not user_id:
+                logger.warning("WebSocket authentication: No user ID in token")
+                return None
+            
+            logger.debug(f"WebSocket authentication: User ID from token: {user_id}")
+            
+            # Handle ObjectId conversion
+            try:
+                if ObjectId.is_valid(user_id):
+                    obj_id = ObjectId(user_id)
+                else:
+                    obj_id = user_id
+            except Exception as e:
+                logger.error(f"WebSocket authentication: ObjectId conversion error: {e}")
+                obj_id = user_id
+            
+            # Find user in database
+            user = await self.db.users.find_one({"_id": obj_id})
+            
             if user:
                 # Convert ObjectId to string for JSON serialization
                 user["_id"] = str(user["_id"])
+                logger.info(f"WebSocket authenticated user: {user.get('username', 'Unknown')} (role: {user.get('role', 'user')})")
                 return user
+            else:
+                logger.warning(f"WebSocket authentication: User not found for ID: {user_id}")
+                return None
+                
         except Exception as e:
             logger.error(f"WebSocket authentication failed: {e}")
-        
-        return None
+            return None
     
+    # ============================================================
+    # FIX 2: CONNECT METHOD - Better error handling
+    # ============================================================
     async def connect(self, websocket: WebSocket, token: Optional[str] = None):
         """Accept new WebSocket connection with authentication"""
         # Ensure background tasks are running
@@ -106,12 +149,22 @@ class WebSocketManager:
         # Authenticate user
         user = await self.authenticate(token)
         
-        # If authentication is required and fails, reject connection
+        # If authentication fails, reject connection
         if not user:
-            await websocket.close(code=1008, reason="Authentication required")
-            return
+            logger.warning(f"WebSocket connection rejected: Authentication failed")
+            try:
+                await websocket.close(code=1008, reason="Authentication required")
+            except Exception as e:
+                logger.debug(f"Error closing websocket on auth failure: {e}")
+            # Raise disconnect to stop execution
+            raise WebSocketDisconnect(code=1008, reason="Authentication required")
         
-        await websocket.accept()
+        # Accept the WebSocket connection
+        try:
+            await websocket.accept()
+        except Exception as e:
+            logger.error(f"WebSocket accept failed: {e}")
+            raise WebSocketDisconnect(code=1011, reason="Failed to accept connection")
         
         # Add to connection pools
         self.active_connections.add(websocket)
@@ -142,19 +195,22 @@ class WebSocketManager:
         )
         
         # Send connection confirmation
-        await self.send_personal_message({
-            "type": "connection_established",
-            "timestamp": datetime.utcnow().isoformat(),
-            "message": "Connected to SICRSense real-time feed",
-            "connection_id": id(websocket),
-            "system_status": self.get_system_status(),
-            "features": {
-                "prediction_streaming": True,
-                "metrics_streaming": True,
-                "admin_monitoring": user.get("role") == "admin",
-                "max_reconnect_timeout": 30
-            }
-        }, websocket)
+        try:
+            await self.send_personal_message({
+                "type": "connection_established",
+                "timestamp": datetime.utcnow().isoformat(),
+                "message": "Connected to SICRSense real-time feed",
+                "connection_id": id(websocket),
+                "system_status": self.get_system_status(),
+                "features": {
+                    "prediction_streaming": True,
+                    "metrics_streaming": True,
+                    "admin_monitoring": user.get("role") == "admin",
+                    "max_reconnect_timeout": 30
+                }
+            }, websocket)
+        except Exception as e:
+            logger.error(f"Failed to send connection confirmation: {e}")
     
     def disconnect(self, websocket: WebSocket):
         """Remove WebSocket connection and clean up"""

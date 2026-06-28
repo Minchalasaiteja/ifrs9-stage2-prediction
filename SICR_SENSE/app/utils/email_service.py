@@ -49,13 +49,15 @@ class EmailService:
                     message.attach(part)
             
             # Send email
+            # Replace the aiosmtplib.send block with dynamic port handling
             await aiosmtplib.send(
                 message,
                 hostname=settings.SMTP_HOST,
                 port=settings.SMTP_PORT,
                 username=settings.SMTP_USER,
                 password=settings.SMTP_PASSWORD,
-                use_tls=True,
+                use_tls=settings.SMTP_PORT == 465,
+                start_tls=settings.SMTP_PORT == 587,
             )
             
             logger.info(f"Email sent successfully to {to_email}")

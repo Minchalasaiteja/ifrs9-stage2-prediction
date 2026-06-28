@@ -9,14 +9,6 @@ from ..auth.dependencies import get_current_active_user, RoleChecker
 router = APIRouter()
 admin_only = RoleChecker(["admin"])
 
-ALLOWED_COLLECTIONS = {
-    "users": db.users,
-    "predictions": db.predictions,
-    "audit_logs": db.audit_logs,
-    "notifications": db.notifications,
-    "error_reports": db.error_reports
-}
-
 
 def _parse_ids(ids: List[str]):
     parsed_ids = []
@@ -28,6 +20,21 @@ def _parse_ids(ids: List[str]):
     return parsed_ids
 
 
+# ============================================================
+# FIX: Lazy initialization of collection mappings
+# ============================================================
+def get_collection(name: str):
+    """Lazy get collection by name to avoid import-time database access"""
+    collections = {
+        "users": db.users,
+        "predictions": db.predictions,
+        "audit_logs": db.audit_logs,
+        "notifications": db.notifications,
+        "error_reports": db.error_reports
+    }
+    return collections.get(name)
+
+
 @router.post("/bulk-delete")
 async def bulk_delete(
     payload: Dict[str, Any] = Body(...),
@@ -37,7 +44,7 @@ async def bulk_delete(
         raise HTTPException(status_code=400, detail="ids must be provided as an array")
 
     collection_name = payload.get("collection", "users")
-    collection = ALLOWED_COLLECTIONS.get(collection_name)
+    collection = get_collection(collection_name)
     if collection is None:
         raise HTTPException(status_code=400, detail="Unsupported collection for bulk delete")
 
@@ -62,7 +69,7 @@ async def export_items(
     collection: Optional[str] = Query("users"),
     current_user: dict = Depends(admin_only)
 ):
-    collection_obj = ALLOWED_COLLECTIONS.get(collection)
+    collection_obj = get_collection(collection)
     if collection_obj is None:
         raise HTTPException(status_code=400, detail="Unsupported collection for export")
 
@@ -120,23 +127,27 @@ async def search(
     try:
         users = await db.users.find({"$or": [{"username": q_regex}, {"email": q_regex}, {"first_name": q_regex}, {"last_name": q_regex}]}).limit(limit).to_list(length=limit)
         for user in users:
+            # Convert ObjectId to string
+            user_id = str(user["_id"])
             results.append({
-                "id": str(user["_id"]),
+                "id": user_id,
                 "title": f"{user.get('first_name', '')} {user.get('last_name', '')}".strip() or user.get("username"),
                 "subtitle": user.get("email"),
                 "type": "User",
-                "url": f"/admin/users/{user.get('_id')}"
+                "url": f"/admin/users/{user_id}",
+                "icon": "fa-user"
             })
 
         if len(results) < limit:
-            predictions = await db.predictions.find({"$or": [{"loan_id": q_regex}, {"risk_tier": q_regex}]}).limit(limit - len(results)).to_list(length=limit - len(results))
+            predictions = await db.predictions.find({"$or": [{"input.loan_id": q_regex}, {"output.risk_tier": q_regex}]}).limit(limit - len(results)).to_list(length=limit - len(results))
             for pred in predictions:
                 results.append({
                     "id": str(pred["_id"]),
-                    "title": pred.get("loan_id", "Prediction"),
-                    "subtitle": pred.get("risk_tier", ""),
+                    "title": pred.get("input", {}).get("loan_id", "Prediction"),
+                    "subtitle": pred.get("output", {}).get("risk_tier", ""),
                     "type": "Prediction",
-                    "url": "/dashboard"
+                    "url": "/dashboard",
+                    "icon": "fa-chart-line"
                 })
 
         if len(results) < limit:
@@ -147,10 +158,11 @@ async def search(
                     "title": log.get("action", "Audit Event"),
                     "subtitle": log.get("details", ""),
                     "type": "Audit",
-                    "url": "/admin/audit"
+                    "url": "/admin/audit",
+                    "icon": "fa-history"
                 })
-    except Exception:
-        raise HTTPException(status_code=500, detail="Search service unavailable")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Search service unavailable: {str(e)}")
 
     return {"results": results[:limit]}
 
@@ -163,10 +175,17 @@ async def get_notifications(
     user_id = str(current_user["_id"])
     notifications = await db.notifications.find({"user_id": user_id}).sort("created_at", -1).limit(limit).to_list(length=limit)
     unread_count = await db.notifications.count_documents({"user_id": user_id, "read": False})
+    
+    # Convert ObjectIds to strings for JSON serialization
+    serialized = []
+    for notif in notifications:
+        notif["_id"] = str(notif["_id"])
+        serialized.append(notif)
+    
     return {
-        "notifications": notifications,
+        "notifications": serialized,
         "unread_count": unread_count,
-        "total": len(notifications)
+        "total": len(serialized)
     }
 
 

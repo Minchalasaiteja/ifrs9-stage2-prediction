@@ -33,3 +33,4 @@ logs/
 
 code/
 
+.apitest.py/
